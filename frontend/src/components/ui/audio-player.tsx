@@ -299,7 +299,7 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
         <button
           type="button"
           onClick={() => onPrev?.(mode)}
-          className="h-9 px-2 inline-flex items-center gap-1 rounded-md border border-slate-300 text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
+          className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-slate-300 text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
           aria-label="上一曲"
           title="上一曲"
           disabled={!ready}
@@ -309,7 +309,7 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
         <button
           type="button"
           onClick={() => onNext?.(mode)}
-          className="h-9 px-2 inline-flex items-center gap-1 rounded-md border border-slate-300 text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
+          className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-slate-300 text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
           aria-label="下一曲"
           title="下一曲"
           disabled={!ready}
@@ -319,7 +319,7 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
         <button
           type="button"
           onClick={cycleMode}
-          className="h-9 px-2 inline-flex items-center gap-1 rounded-md border border-slate-300 text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
+          className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-slate-300 text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
           aria-label={mode === 'one' ? '单曲循环' : mode === 'shuffle' ? '随机播放' : '列表循环'}
           title={mode === 'one' ? '单曲循环' : mode === 'shuffle' ? '随机播放' : '列表循环'}
         >
@@ -348,10 +348,10 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
               className={cn(
                 'absolute inset-0 w-full h-full appearance-none bg-transparent',
                 '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:-mt-1',
-                '[&::-webkit-slider-runnable-track]:appearance-none [&::-webkit-slider-runnable-track]:h-1.5',
+                '[&::-webkit-slider-runnable-track]:appearance-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:rounded-full',
                 // Firefox styling
                 '[&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600',
-                '[&::-moz-range-track]:h-1.5 [&::-moz-range-track]:bg-slate-200 dark:[&::-moz-range-track]:bg-slate-700',
+                '[&::-moz-range-track]:h-1.5 [&::-moz-range-track]:bg-slate-200 dark:[&::-moz-range-track]:bg-slate-700 [&::-moz-range-track]:rounded-full',
               )}
               aria-label="进度"
               disabled={!ready}
@@ -375,15 +375,15 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
           min={0}
           max={1}
           step={0.01}
-          value={ready ? volume : 0}
+          value={volume}
           onChange={(e) => changeVolume(parseFloat(e.target.value))}
           className={cn(
             'w-24 hidden sm:block appearance-none bg-transparent h-5',
-            '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-slate-500 [&::-webkit-slider-thumb]:-mt-1',
-            '[&::-webkit-slider-runnable-track]:appearance-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:bg-slate-200 dark:[&::-webkit-slider-runnable-track]:bg-slate-700',
+            '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:-mt-1',
+            '[&::-webkit-slider-runnable-track]:appearance-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:bg-slate-200 dark:[&::-webkit-slider-runnable-track]:bg-slate-700 [&::-webkit-slider-runnable-track]:rounded-full',
             // Firefox styling
-            '[&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-slate-500',
-            '[&::-moz-range-track]:h-1.5 [&::-moz-range-track]:bg-slate-200 dark:[&::-moz-range-track]:bg-slate-700',
+            '[&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600',
+            '[&::-moz-range-track]:h-1.5 [&::-moz-range-track]:bg-slate-200 dark:[&::-moz-range-track]:bg-slate-700 [&::-moz-range-track]:rounded-full',
           )}
           aria-label="音量"
           disabled={!ready}
@@ -459,7 +459,7 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
                   min={0}
                   max={1}
                   step={0.01}
-                  value={ready ? volume : 0}
+                  value={volume}
                   onChange={(e) => changeVolume(parseFloat(e.target.value))}
                   onMouseDown={cancelCloseVol}
                   onTouchStart={cancelCloseVol}
@@ -467,9 +467,9 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
                   onTouchEnd={scheduleCloseVol}
                   className={cn(
                     'appearance-none bg-transparent h-5 -rotate-90 origin-center',
-                    '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-400 [&::-webkit-slider-thumb]:-mt-1',
+                    '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:-mt-1',
                     '[&::-webkit-slider-runnable-track]:appearance-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:bg-slate-200/80 dark:[&::-webkit-slider-runnable-track]:bg-slate-700/80 [&::-webkit-slider-runnable-track]:rounded-full',
-                    '[&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-400',
+                    '[&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600',
                     '[&::-moz-range-track]:h-1.5 [&::-moz-range-track]:bg-slate-200/80 dark:[&::-moz-range-track]:bg-slate-700/80 [&::-moz-range-track]:rounded-full',
                   )}
                   aria-label="音量"
