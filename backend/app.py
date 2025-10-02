@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from quart import Quart, send_from_directory, websocket, request
+import os
+from urllib.parse import urlparse
 
 
 # Support both package and script execution
@@ -94,12 +96,65 @@ def create_app() -> Quart:
         await _stream_scan('music')
 
     # ========== Global CORS handling ==========
+    # 允许的跨域来源（逗号分隔环境变量 CORS_ALLOW_ORIGINS 覆盖）
+    # 支持三种写法：
+    # 1) 完整 Origin：例如 https://igcrystal.icu
+    # 2) 泛域名：例如 https://*.igcrystal.icu 或 *.igcrystal.icu（忽略协议，仅按 host 匹配）
+    # 3) 裸主机：例如 igcrystal.icu（按主机名精确匹配）
+    _cors_raw = os.getenv('CORS_ALLOW_ORIGINS') or 'https://igcrystal.icu,https://*.igcrystal.icu,https://www.igcrystal.icu'
+    _cors_items = [i.strip() for i in _cors_raw.split(',') if i.strip()]
+    allowed_exact_origins = set()
+    allowed_exact_hosts = set()
+    allowed_host_suffixes = set()  # 包含前导点：例如 .igcrystal.icu
+
+    for item in _cors_items:
+        if '://' in item:
+            # 含协议，可能是完整 Origin，或 host 上带通配符
+            u = urlparse(item)
+            host = u.netloc
+            if host.startswith('*.'):
+                allowed_host_suffixes.add(host[1:])  # '*.example.com' -> '.example.com'
+            else:
+                allowed_exact_origins.add(item)
+        else:
+            # 不含协议，当作主机或通配符主机
+            if item.startswith('*.'):
+                allowed_host_suffixes.add(item[1:])
+            else:
+                allowed_exact_hosts.add(item)
+
+    def _is_origin_allowed(origin: str | None) -> bool:
+        if not origin:
+            return False
+        # 完整 Origin 精确匹配
+        if origin in allowed_exact_origins:
+            return True
+        try:
+            u = urlparse(origin)
+            host = u.netloc
+        except Exception:
+            return False
+        # 主机精确匹配
+        if host in allowed_exact_hosts:
+            return True
+        # 泛域名后缀匹配
+        for suf in allowed_host_suffixes:
+            s = suf.lstrip('.')
+            if host == s or host.endswith('.' + s):
+                return True
+        return False
+
     def _apply_cors_headers(resp):
-        # 允许跨域访问（如需收紧可改为指定域名）
-        origin = request.headers.get('Origin') or '*'
-        resp.headers['Access-Control-Allow-Origin'] = origin
+        # 仅当请求来源在白名单中时，设置允许跨域
+        origin = request.headers.get('Origin')
+        if _is_origin_allowed(origin):
+            resp.headers['Access-Control-Allow-Origin'] = origin
+            resp.headers['Vary'] = 'Origin'
+        # 若无需携带凭证，这里不必强制设置 Allow-Credentials
         # 避免缓存错误（不同 Origin）
-        resp.headers.setdefault('Vary', 'Origin')
+        else:
+            # 不匹配时，不返回 Allow-Origin，浏览器将阻止跨域
+            pass
         resp.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
         # 允许前端常见头；若预检指定了请求头，原样透传
         req_headers = request.headers.get('Access-Control-Request-Headers')
