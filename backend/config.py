@@ -79,9 +79,11 @@ class Config:
         cfg.FRONTEND_SITE_DIR = getenv_path("FRONTEND_SITE_DIR", root / "assets")
 
         # Ensure directories exist
+        cfg.VIDEO_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
         cfg.VIDEO_HLS_DIR.mkdir(parents=True, exist_ok=True)
         cfg.VIDEO_PLAYLIST_FILE.parent.mkdir(parents=True, exist_ok=True)
 
+        cfg.MUSIC_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
         cfg.MUSIC_HLS_DIR.mkdir(parents=True, exist_ok=True)
         cfg.MUSIC_PLAYLIST_FILE.parent.mkdir(parents=True, exist_ok=True)
 
