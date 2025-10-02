@@ -68,7 +68,19 @@ export default function VideoPage() {
           toast.success('视频扫描完成')
           setLoading(false)
         },
-        onError: (msg) => setLogs(prev => [...prev, `ERROR: ${msg}`]),
+        onError: (msg) => {
+          setLogs(prev => [...prev, `ERROR: ${msg}`])
+          if (/already running/i.test(msg)) {
+            toast.error('有一个视频扫描正在进行中，请稍后再试')
+          } else if (/debounced/i.test(msg)) {
+            const m = msg.match(/(~?(\d+)s)/i)
+            const left = m?.[2] ? `约 ${m[2]} 秒后重试` : '稍后重试'
+            toast.error(`操作过于频繁，${left}`)
+          } else {
+            toast.error(`视频扫描失败：${msg}`)
+          }
+          setLoading(false)
+        },
         onClose: () => { if (ws) ws = null }
       })
     } catch {
@@ -78,6 +90,18 @@ export default function VideoPage() {
         setLogs(data.logs || [])
         await load()
         toast.success('视频扫描完成')
+      } catch (err) {
+        const msg = String((err as Error)?.message || err)
+        setLogs(prev => [...prev, `ERROR: ${msg}`])
+        if (/\b409\b/.test(msg) || /already running/i.test(msg)) {
+          toast.error('有一个视频扫描正在进行中，请稍后再试')
+        } else if (/\b429\b/.test(msg) || /debounced/i.test(msg)) {
+          const m = msg.match(/(~?(\d+)s)/i)
+          const left = m?.[2] ? `约 ${m[2]} 秒后重试` : '稍后重试'
+          toast.error(`操作过于频繁，${left}`)
+        } else {
+          toast.error('视频扫描启动失败')
+        }
       } finally { setLoading(false) }
     }
   }
