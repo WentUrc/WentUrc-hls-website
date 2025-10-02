@@ -17,7 +17,7 @@ export function HlsVideo({ src, poster, className }: { src: string, poster?: str
     }
     return () => { if (hls) hls.destroy() }
   }, [src])
-  return <video ref={ref} poster={poster} controls className={className} />
+  return <video ref={ref} poster={poster} controls className={`my-4 rounded-sm overflow-hidden [color-scheme:light] dark:[color-scheme:dark] ${className ?? ''}`} />
 }
 
 export function HlsAudio({ src, className }: { src: string, className?: string }) {
@@ -35,5 +35,5 @@ export function HlsAudio({ src, className }: { src: string, className?: string }
     }
     return () => { if (hls) hls.destroy() }
   }, [src])
-  return <audio ref={ref} controls className={className} />
+  return <audio ref={ref} controls className={`my-4 rounded-sm overflow-hidden bg-white dark:bg-slate-900 [color-scheme:light] dark:[color-scheme:dark] ${className ?? ''}`} />
 }

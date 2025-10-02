@@ -1,9 +1,11 @@
 "use client"
 import { useEffect, useMemo, useState } from 'react'
-import { HlsAudio } from '@/components/HlsPlayer'
+// import { HlsAudio } from '@/components/HlsPlayer'
+import { AudioPlayer, type PlayMode } from '@/components/ui/audio-player'
 import { getJSON, postJSON, openScanWS } from '@/lib/api'
 import { Button } from '@/components/ui/button'
-import { Music, RefreshCw } from 'lucide-react'
+import { Window } from '@/components/ui/window'
+import { Music, RefreshCw, History, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 type Track = { id: string; artist?: string; title?: string; originalFile?: string; hlsUrl?: string; hasHLS?: boolean; format?: string }
@@ -12,17 +14,10 @@ export default function MusicPage() {
   const [list, setList] = useState<Track[]>([])
   const [logs, setLogs] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
-  // pagination (pure client-side)
-  const readQuery = () => {
-    if (typeof window === 'undefined') return { p: 1, ps: 12 }
-    const sp = new URLSearchParams(window.location.search)
-    const p = Math.max(1, Number(sp.get('page') || 1) || 1)
-    const ps = Math.max(1, Number(sp.get('pageSize') || 12) || 12)
-    return { p, ps }
-  }
-  const [{ p: initPage, ps: initPageSize }] = useState(readQuery())
-  const [page, setPage] = useState(initPage)
-  const [pageSize, setPageSize] = useState(initPageSize)
+  const [showLogs, setShowLogs] = useState(false)
+  const hasLogs = logs.length > 0
+  // selection for detail pane
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const load = async () => {
     try {
@@ -34,27 +29,44 @@ export default function MusicPage() {
   }
   useEffect(() => { load() }, [])
 
-  // keep page in range when list or pageSize changes
-  const total = list.length
-  const totalPages = Math.max(1, Math.ceil(total / pageSize || 1))
+  // initialize selected item when list loads or changes
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages)
-  }, [totalPages, page])
-
-  // sync to URL for share/back-forward
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const sp = new URLSearchParams(window.location.search)
-    sp.set('page', String(page))
-    sp.set('pageSize', String(pageSize))
-    const newUrl = `${window.location.pathname}?${sp.toString()}`
-    window.history.replaceState({}, '', newUrl)
-  }, [page, pageSize])
-
-  const pageItems = useMemo(() => {
-    const start = (page - 1) * pageSize
-    return list.slice(start, start + pageSize)
-  }, [list, page, pageSize])
+    if (!list.length) { setSelectedId(null); return }
+    if (!selectedId || !list.some(i => i.id === selectedId)) {
+      setSelectedId(list[0].id)
+    }
+  }, [list, selectedId])
+  const selected = useMemo(() => list.find(i => i.id === selectedId) || null, [list, selectedId])
+  const indexById = useMemo(() => new Map(list.map((t, idx) => [t.id, idx])), [list])
+  const gotoByIndex = (idx: number) => {
+    if (!list.length) return
+    const n = ((idx % list.length) + list.length) % list.length
+    setSelectedId(list[n].id)
+  }
+  const handlePrev = (mode: PlayMode) => {
+    if (!list.length) return
+    if (mode === 'shuffle') {
+      const r = Math.floor(Math.random() * list.length)
+      gotoByIndex(r)
+    } else {
+      const cur = indexById.get(selectedId || '') ?? 0
+      gotoByIndex(cur - 1)
+    }
+  }
+  const handleNext = (mode: PlayMode) => {
+    if (!list.length) return
+    if (mode === 'shuffle') {
+      const r = Math.floor(Math.random() * list.length)
+      gotoByIndex(r)
+    } else if (mode === 'one') {
+      // stay on current
+      const cur = indexById.get(selectedId || '') ?? 0
+      gotoByIndex(cur)
+    } else {
+      const cur = indexById.get(selectedId || '') ?? 0
+      gotoByIndex(cur + 1)
+    }
+  }
 
   const scan = async () => {
     setLoading(true)
@@ -84,7 +96,7 @@ export default function MusicPage() {
         },
         onClose: () => { if (ws) ws = null }
       })
-    } catch (e) {
+    } catch {
       // fallback: use HTTP POST once
       try {
         const data = await postJSON<{ logs?: string[]; result?: unknown }>('/api/scan/music')
@@ -108,61 +120,131 @@ export default function MusicPage() {
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="p-4 sm:p-6 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-bold flex items-center gap-2"><Music size={20}/> 音乐列表</h1>
-        <Button onClick={scan} disabled={loading} variant={loading ? 'outline' : 'default'}>
-          <RefreshCw className="mr-1" size={16} /> {loading ? '扫描中…' : '扫描并生成 HLS'}
-        </Button>
-      </div>
-      <div className="flex items-center justify-between text-sm text-slate-600">
-        <div>
-          共 {total} 条；第 {Math.min(page, totalPages)} / {totalPages} 页
-        </div>
-        <div className="flex items-center gap-2">
-          <span>每页</span>
-          <select
-            className="border rounded px-2 py-1 text-sm"
-            value={pageSize}
-            onChange={e => { setPageSize(Number(e.target.value) || 12); setPage(1) }}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          <Button onClick={scan} disabled={loading} variant={loading ? 'outline' : 'default'}>
+            <RefreshCw className="mr-1" size={16} /> {loading ? '扫描中…' : '开始工作'}
+          </Button>
+          <Button
+            variant="outline"
+            className={hasLogs ? 'border-blue-400/60 text-blue-600 dark:border-blue-500/60 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-900/20' : undefined}
+            onClick={() => setShowLogs(true)}
           >
-            <option value={6}>6</option>
-            <option value={12}>12</option>
-            <option value={24}>24</option>
-            <option value={48}>48</option>
-          </select>
-          <span>条</span>
-          <Button variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>上一页</Button>
-          <Button variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>下一页</Button>
+            <History className="mr-1" size={16} />
+            <span>查看日志</span>
+          </Button>
         </div>
       </div>
-
-      <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {pageItems.map(item => (
-          <li key={item.id} className="rounded border border-slate-200 p-0 overflow-hidden">
-            <div className="px-3 py-2 border-b border-slate-200 bg-slate-50 text-sm flex items-center justify-between">
-              <div className="font-medium truncate">{item.title || item.id}</div>
-              <div className="text-slate-500 ml-2 truncate">{item.artist}</div>
+      <section>
+        {list.length === 0 ? (
+          <div className="text-sm text-slate-500">暂无条目</div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* 左侧：列表 */}
+            <div className="lg:col-span-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-sm font-medium">共 {list.length} 条</div>
+              <ul className="max-h-[55vh] lg:max-h-[70vh] overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
+                {list.map(item => {
+                  const active = item.id === selectedId
+                  return (
+                    <li key={item.id}>
+                      <button
+                        onClick={() => setSelectedId(item.id)}
+                        className={`w-full text-left px-4 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors ${active ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'}`}
+                      >
+                        <div className="text-sm font-medium truncate text-slate-900 dark:text-slate-100">{item.title || item.id}</div>
+                        <div className="text-xs text-slate-600 dark:text-slate-300 truncate">{item.artist || '—'}</div>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
             </div>
-            <div className="p-3">
-              {item.hlsUrl ? (
-                <HlsAudio src={item.hlsUrl} className="w-full" />
+            {/* 右侧：详情（保持与视频一致的 16:9 占位区域） */}
+            <div className="lg:col-span-2 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+              {selected ? (
+                <div>
+                  <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                    <div className="font-medium truncate text-slate-900 dark:text-slate-100">{selected.title || selected.id}</div>
+                    <div className="text-slate-600 dark:text-slate-300 sm:ml-2 truncate">{selected.artist || '—'}</div>
+                  </div>
+                  <div className="p-4">
+                    {/* 16:9 容器内叠放占位图与控制条：总高度与视频一致 */}
+                    <div className="relative w-full aspect-video overflow-hidden rounded-sm bg-slate-100 dark:bg-slate-800">
+                      <img
+                        src="/image/artist.webp"
+                        alt="音频占位图"
+                        className="w-full h-full object-cover rounded-sm"
+                        loading="lazy"
+                      />
+                      {/* 底部轻微渐变，提升控制条可读性 */}
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 sm:h-20 bg-gradient-to-t from-black/40 to-transparent" />
+                      {/* 控制条固定在底部，透明无边框，避免超出 16:9 高度 */}
+                      {selected.hlsUrl ? (
+                        <div className="absolute inset-x-0 bottom-0 p-2">
+                          <AudioPlayer
+                            src={selected.hlsUrl}
+                            className="bg-transparent dark:bg-transparent border-0 shadow-none rounded-none"
+                            onPrev={handlePrev}
+                            onNext={handleNext}
+                          />
+                        </div>
+                      ) : (
+                        <div className="absolute inset-x-0 bottom-0 p-3 text-xs sm:text-sm text-white/90 dark:text-slate-200/90">
+                          无 HLS，可点击上方按钮生成
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-3 w-full text-xs text-slate-600 dark:text-slate-300">
+                      <div className="flex items-center gap-2 w-full">
+                        <div className="min-w-0 flex-1 flex items-center">
+                          <span className="flex-none text-slate-500 dark:text-slate-400">原文件：</span>
+                          <span className="truncate">{selected.originalFile || '—'}</span>
+                        </div>
+                        <div className="flex-none text-right whitespace-nowrap">
+                          <span className="text-slate-500 dark:text-slate-400">格式：</span>
+                          <span>{selected.format || '—'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ) : (
-                <div className="text-sm text-slate-500">无 HLS，可点击右上角按钮生成</div>
+                <div className="p-6 text-sm text-slate-500">请选择左侧条目</div>
               )}
-              <div className="text-xs text-slate-500 mt-2 break-all">原文件：{item.originalFile}</div>
             </div>
-          </li>
-        ))}
-      </ul>
-      {total === 0 && (
-        <div className="text-sm text-slate-500">暂无条目</div>
-      )}
-      {logs.length > 0 && (
-        <details className="mt-6">
-          <summary className="cursor-pointer">查看最近日志</summary>
-          <pre className="p-3 bg-slate-100 rounded overflow-auto max-h-64 text-xs whitespace-pre-wrap">{logs.join('\n')}</pre>
-        </details>
+          </div>
+        )}
+      </section>
+      {showLogs && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowLogs(false)} />
+          <div className="absolute inset-0 grid place-items-center p-4">
+            <Window size="lg">
+                <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <History size={16} /> 查看最近日志
+                </div>
+                <button
+                  className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
+                  aria-label="关闭"
+                  onClick={() => setShowLogs(false)}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="p-4">
+                {logs.length ? (
+                    <pre className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded overflow-auto max-h-[60vh] text-xs whitespace-pre-wrap font-mono">{logs.join('\n')}</pre>
+                ) : (
+                    <div className="text-sm text-slate-500 dark:text-slate-400">暂无日志</div>
+                )}
+              </div>
+            </Window>
+          </div>
+        </div>
       )}
     </div>
   )
