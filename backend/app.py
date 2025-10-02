@@ -3,6 +3,7 @@ from __future__ import annotations
 from quart import Quart, send_from_directory, websocket, request
 import os
 from urllib.parse import urlparse
+import time
 
 
 # Support both package and script execution
@@ -65,12 +66,42 @@ def create_app() -> Quart:
         'video': asyncio.Lock(),
         'music': asyncio.Lock(),
     }
+    # 最近一次开始扫描的时间戳（秒）
+    app.scan_last = {
+        'video': 0.0,
+        'music': 0.0,
+    }
+    # 防抖间隔（秒），可通过环境变量覆盖
+    try:
+        debounce_sec = int(os.getenv('SCAN_DEBOUNCE_SECONDS', '10'))
+    except Exception:
+        debounce_sec = 10
+    app.config['SCAN_DEBOUNCE_SECONDS'] = debounce_sec
 
     async def _stream_scan(kind: str):
         lock = app.scan_locks[kind]
         cfg2 = app.config['APP_CONFIG']
+        now = time.time()
+        last = app.scan_last.get(kind, 0.0)
+        debounce = app.config.get('SCAN_DEBOUNCE_SECONDS', 10)
+
+        # 若已在运行，直接提示忙碌
+        if lock.locked():
+            try:
+                await websocket.send(_json.dumps({'type': 'error', 'message': f'{kind} scan is already running'}))
+            finally:
+                return
+        # 若在防抖间隔内，拒绝并提示稍后再试
+        if last and (now - last) < debounce:
+            wait_sec = max(0, int(debounce - (now - last)))
+            try:
+                await websocket.send(_json.dumps({'type': 'error', 'message': f'{kind} scan debounced, please retry in ~{wait_sec}s'}))
+            finally:
+                return
 
         async with lock:
+            # 记录开始时间
+            app.scan_last[kind] = time.time()
             async def send_log(line: str):
                 try:
                     await websocket.send(_json.dumps({ 'type': 'log', 'line': line }))

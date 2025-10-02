@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { HlsAudio } from '@/components/HlsPlayer'
 import { getJSON, postJSON, openScanWS } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,17 @@ export default function MusicPage() {
   const [list, setList] = useState<Track[]>([])
   const [logs, setLogs] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  // pagination (pure client-side)
+  const readQuery = () => {
+    if (typeof window === 'undefined') return { p: 1, ps: 12 }
+    const sp = new URLSearchParams(window.location.search)
+    const p = Math.max(1, Number(sp.get('page') || 1) || 1)
+    const ps = Math.max(1, Number(sp.get('pageSize') || 12) || 12)
+    return { p, ps }
+  }
+  const [{ p: initPage, ps: initPageSize }] = useState(readQuery())
+  const [page, setPage] = useState(initPage)
+  const [pageSize, setPageSize] = useState(initPageSize)
 
   const load = async () => {
     try {
@@ -22,6 +33,28 @@ export default function MusicPage() {
     }
   }
   useEffect(() => { load() }, [])
+
+  // keep page in range when list or pageSize changes
+  const total = list.length
+  const totalPages = Math.max(1, Math.ceil(total / pageSize || 1))
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages)
+  }, [totalPages, page])
+
+  // sync to URL for share/back-forward
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const sp = new URLSearchParams(window.location.search)
+    sp.set('page', String(page))
+    sp.set('pageSize', String(pageSize))
+    const newUrl = `${window.location.pathname}?${sp.toString()}`
+    window.history.replaceState({}, '', newUrl)
+  }, [page, pageSize])
+
+  const pageItems = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return list.slice(start, start + pageSize)
+  }, [list, page, pageSize])
 
   const scan = async () => {
     setLoading(true)
@@ -57,8 +90,30 @@ export default function MusicPage() {
           <RefreshCw className="mr-1" size={16} /> {loading ? '扫描中…' : '扫描并生成 HLS'}
         </Button>
       </div>
+      <div className="flex items-center justify-between text-sm text-slate-600">
+        <div>
+          共 {total} 条；第 {Math.min(page, totalPages)} / {totalPages} 页
+        </div>
+        <div className="flex items-center gap-2">
+          <span>每页</span>
+          <select
+            className="border rounded px-2 py-1 text-sm"
+            value={pageSize}
+            onChange={e => { setPageSize(Number(e.target.value) || 12); setPage(1) }}
+          >
+            <option value={6}>6</option>
+            <option value={12}>12</option>
+            <option value={24}>24</option>
+            <option value={48}>48</option>
+          </select>
+          <span>条</span>
+          <Button variant="outline" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>上一页</Button>
+          <Button variant="outline" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}>下一页</Button>
+        </div>
+      </div>
+
       <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {list.map(item => (
+        {pageItems.map(item => (
           <li key={item.id} className="rounded border border-slate-200 p-0 overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-200 bg-slate-50 text-sm flex items-center justify-between">
               <div className="font-medium truncate">{item.title || item.id}</div>
@@ -75,6 +130,9 @@ export default function MusicPage() {
           </li>
         ))}
       </ul>
+      {total === 0 && (
+        <div className="text-sm text-slate-500">暂无条目</div>
+      )}
       {logs.length > 0 && (
         <details className="mt-6">
           <summary className="cursor-pointer">查看最近日志</summary>
