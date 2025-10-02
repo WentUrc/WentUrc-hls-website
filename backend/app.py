@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from quart import Quart, send_from_directory, websocket
+from quart import Quart, send_from_directory, websocket, request
 
 
 # Support both package and script execution
@@ -92,6 +92,33 @@ def create_app() -> Quart:
     @app.websocket('/ws/scan/music')
     async def ws_scan_music():
         await _stream_scan('music')
+
+    # ========== Global CORS handling ==========
+    def _apply_cors_headers(resp):
+        # 允许跨域访问（如需收紧可改为指定域名）
+        origin = request.headers.get('Origin') or '*'
+        resp.headers['Access-Control-Allow-Origin'] = origin
+        # 避免缓存错误（不同 Origin）
+        resp.headers.setdefault('Vary', 'Origin')
+        resp.headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
+        # 允许前端常见头；若预检指定了请求头，原样透传
+        req_headers = request.headers.get('Access-Control-Request-Headers')
+        resp.headers['Access-Control-Allow-Headers'] = req_headers or 'Content-Type, Authorization'
+        return resp
+
+    @app.before_request
+    async def _cors_preflight():
+        if request.method == 'OPTIONS':
+            resp = app.response_class(status=204)
+            _apply_cors_headers(resp)
+            return resp
+
+    @app.after_request
+    async def _cors_after(resp):
+        try:
+            return _apply_cors_headers(resp)
+        except Exception:
+            return resp
 
     # ========== Frontend: serve static exported site ==========
     if cfg.FRONTEND_ENABLE:
