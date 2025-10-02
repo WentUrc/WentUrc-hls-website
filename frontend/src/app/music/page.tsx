@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 // import { HlsAudio } from '@/components/HlsPlayer'
 import { AudioPlayer, type PlayMode } from '@/components/ui/audio-player'
 import { getJSON, postJSON, openScanWS } from '@/lib/api'
@@ -209,13 +210,13 @@ export default function MusicPage() {
                   <div className="p-4">
                     {/* 16:9 容器内叠放占位图与控制条：总高度与视频一致 */}
                     <div className="relative w-full aspect-video overflow-hidden rounded-sm bg-slate-100 dark:bg-slate-800" data-media-boundary>
-                      <img
+                      <Image
                         src="/image/artist.webp"
                         alt="音频占位图"
-                        data-image-boundary
-                        className={`w-full h-full object-cover rounded-sm ${imgLoaded ? 'animate-fade-in-up' : 'opacity-0'}`}
-                        ref={imgRef}
-                        loading="lazy"
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 66vw"
+                        priority={false}
+                        className={`object-cover rounded-sm ${imgLoaded ? 'animate-fade-in-up' : 'opacity-0'}`}
                         onLoad={() => setImgLoaded(true)}
                       />
           {/* 底部渐变：

@@ -78,14 +78,13 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
     // find nearest ancestor marked as media boundary or fallback to viewport
     const boundary = btn.closest('[data-media-boundary]') as HTMLElement | null
   const btnRect = btn.getBoundingClientRect()
-    const viewportTop = 0
-    const viewportBottom = window.innerHeight
-    let topLimit = viewportTop
-    let bottomLimit = viewportBottom
+  const viewportTop = 0
+  let topLimit = viewportTop
+  // let bottomLimit = viewportBottom // unused
     if (boundary) {
       const b = boundary.getBoundingClientRect()
       topLimit = Math.max(viewportTop, b.top)
-      bottomLimit = Math.min(viewportBottom, b.bottom)
+  // bottomLimit = Math.min(viewportBottom, b.bottom) // unused
     }
   // 面板向上展开，考虑 bottom-10 (2.5rem) 的锚点偏移
     const rootFont = parseFloat(getComputedStyle(document.documentElement).fontSize || '16') || 16

@@ -18,7 +18,7 @@ export function HlsVideo({ src, poster, className, onCanPlay }: { src: string, p
       hls.attachMedia(video)
     }
     return () => { if (hls) hls.destroy(); video.removeEventListener('canplay', handleCanPlay) }
-  }, [src])
+  }, [src, onCanPlay])
   return <video ref={ref} poster={poster} controls className={`my-4 rounded-sm overflow-hidden [color-scheme:light] dark:[color-scheme:dark] ${className ?? ''}`} />
 }
 

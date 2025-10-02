@@ -25,7 +25,7 @@ export default function AppToaster() {
       setOffsetPx(next)
     }
 
-    const onScrollOrResize = () => {
+  const onScrollOrResize = () => {
       if (frame) return
       frame = requestAnimationFrame(() => {
         frame = 0
@@ -46,8 +46,8 @@ export default function AppToaster() {
     ro?.observe(footer!)
 
     return () => {
-      window.removeEventListener('scroll', onScrollOrResize as any)
-      window.removeEventListener('resize', onScrollOrResize as any)
+  window.removeEventListener('scroll', onScrollOrResize)
+  window.removeEventListener('resize', onScrollOrResize)
       if (frame) cancelAnimationFrame(frame)
       ro?.disconnect()
     }
