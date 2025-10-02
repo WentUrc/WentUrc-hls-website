@@ -164,8 +164,8 @@ export default function VideoPage() {
                     ) : (
                       <div className="w-full aspect-video grid place-items-center bg-slate-900 text-slate-200 text-sm rounded-sm">无 HLS，可点击上方按钮生成</div>
                     )}
-                    {/* 移动端：列表隐藏时提供上一曲/下一曲 */}
-                    <div className="mt-2 flex items-center gap-2 sm:hidden">
+                    {/* 列表在 <lg 隐藏，因此在 <lg 提供切换按钮（含平板尺寸） */}
+                    <div className="mt-2 flex items-center gap-2 lg:hidden">
                       <Button variant="outline" size="sm" onClick={handlePrev}>上一个</Button>
                       <Button variant="outline" size="sm" onClick={handleNext}>下一个</Button>
                     </div>

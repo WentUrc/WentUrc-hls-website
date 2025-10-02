@@ -186,13 +186,13 @@ export default function MusicPage() {
           {/* 底部渐变：
             - 移动端使用深色渐变（配合白色文字与紧凑控件）
             - 桌面端按主题变化：浅色用白色渐变，深色用黑色渐变 */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 via-black/35 to-transparent sm:hidden" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/80 via-white/40 to-transparent dark:from-black/70 dark:via-black/35 dark:to-transparent hidden sm:block" />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 via-black/35 to-transparent lg:hidden" />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/80 via-white/40 to-transparent dark:from-black/70 dark:via-black/35 dark:to-transparent hidden lg:block" />
                       {/* 控制条固定在底部：桌面端显示完整控制条；移动端仅显示进度+音量（compact） */}
                       {selected.hlsUrl ? (
                         <>
-                          {/* 移动端 compact 控制条（图片内） */}
-                          <div className="absolute inset-x-0 bottom-0 p-2 sm:hidden">
+                          {/* <lg 使用精简版（进度+音量） */}
+                          <div className="absolute inset-x-0 bottom-0 p-2 lg:hidden">
                             <AudioPlayer
                               src={selected.hlsUrl}
                               className="bg-transparent dark:bg-transparent border-0 shadow-none rounded-none"
@@ -203,8 +203,8 @@ export default function MusicPage() {
                               onModeChange={setPlayMode}
                             />
                           </div>
-                          {/* 桌面端完整控制条（图片内） */}
-                          <div className="absolute inset-x-0 bottom-0 p-2 hidden sm:block">
+                          {/* lg+ 使用完整控制条（图片内） */}
+                          <div className="absolute inset-x-0 bottom-0 p-2 hidden lg:block">
                             <AudioPlayer
                               src={selected.hlsUrl}
                               className="bg-transparent dark:bg-transparent border-0 shadow-none rounded-none"
@@ -221,8 +221,8 @@ export default function MusicPage() {
                         </div>
                       )}
                     </div>
-                    {/* 移动端：图片下方提供 上一曲 / 下一曲 / 播放模式 切换按钮 */}
-                    <div className="mt-2 flex items-center gap-2 sm:hidden">
+                    {/* 列表在 <lg 隐藏，因此在 <lg 提供切换 + 模式按钮（含平板尺寸） */}
+                    <div className="mt-2 flex items-center gap-2 lg:hidden">
                       <Button variant="outline" size="sm" onClick={() => handlePrev(playMode)}>上一曲</Button>
                       <Button variant="outline" size="sm" onClick={() => handleNext(playMode)}>下一曲</Button>
                       <Button

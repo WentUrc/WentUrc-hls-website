@@ -42,7 +42,6 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
   const [showVol, setShowVol] = useState(false)
   const volWrapRef = useRef<HTMLDivElement | null>(null)
   const volPanelRef = useRef<HTMLDivElement | null>(null)
-  const volCloseTimer = useRef<number | null>(null)
   const [volMaxHeight, setVolMaxHeight] = useState<number | null>(null)
   const [volSliderLength, setVolSliderLength] = useState<number>(96) // default 24*4 = 96px length of rotated slider
 
@@ -89,26 +88,21 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
       bottomLimit = Math.min(viewportBottom, b.bottom)
     }
   // 面板向上展开，考虑 bottom-10 (2.5rem) 的锚点偏移
-  const rootFont = parseFloat(getComputedStyle(document.documentElement).fontSize || '16') || 16
-  const bottomOffset = 2.5 * rootFont // Tailwind bottom-10
-  const safetyGap = 8
-  const available = Math.max(0, (btnRect.bottom - topLimit) - bottomOffset - safetyGap)
-    // set panel max height with some padding
-    const maxH = Math.max(56, available)
+    const rootFont = parseFloat(getComputedStyle(document.documentElement).fontSize || '16') || 16
+    const bottomOffset = 2.5 * rootFont // Tailwind bottom-10
+    const safetyGap = 8
+    const available = Math.max(0, (btnRect.bottom - topLimit) - bottomOffset - safetyGap)
+    // clamp panel max height to avoid overly tall popover on large viewports
+    const MAX_PANEL = 140
+    const maxH = Math.min(MAX_PANEL, Math.max(56, available))
     setVolMaxHeight(maxH)
     // set slider length to fit within panel (rotated slider width is its rendered width before rotate)
     // panel inner vertical padding is py-2 (~16px) plus thumb space，预留 24px
-    const candidate = Math.max(48, maxH - 24)
+    const candidate = Math.max(48, Math.min(120, maxH - 24))
     setVolSliderLength(candidate)
   }, [showVol])
 
-  const scheduleCloseVol = () => {
-    if (volCloseTimer.current != null) { window.clearTimeout(volCloseTimer.current) }
-    volCloseTimer.current = window.setTimeout(() => setShowVol(false), 800)
-  }
-  const cancelCloseVol = () => {
-    if (volCloseTimer.current != null) { window.clearTimeout(volCloseTimer.current); volCloseTimer.current = null }
-  }
+  // removed: timed auto-close; keep manual toggle and outside-click close only
   const [internalMode, setInternalMode] = useState<PlayMode>('all')
   const mode = modeProp ?? internalMode
   const setMode = (m: PlayMode) => {
@@ -453,7 +447,7 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
           </button>
           {showVol && (
             <div ref={volPanelRef} className="absolute right-0 bottom-10 z-10 rounded-md border border-white/30 bg-black/50 backdrop-blur-sm w-8 px-1 py-2 overscroll-contain overflow-hidden select-none" style={volMaxHeight ? { maxHeight: volMaxHeight } : undefined}>
-              <div className="w-full flex items-center justify-center" style={{ height: volMaxHeight ? Math.max(40, volMaxHeight - 8) : 112 }}>
+              <div className="w-full flex items-center justify-center" style={{ height: volMaxHeight ? Math.max(40, Math.min(132, volMaxHeight - 8)) : 112 }}>
                 <input
                   type="range"
                   min={0}
@@ -461,10 +455,7 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
                   step={0.01}
                   value={volume}
                   onChange={(e) => changeVolume(parseFloat(e.target.value))}
-                  onMouseDown={cancelCloseVol}
-                  onTouchStart={cancelCloseVol}
-                  onMouseUp={scheduleCloseVol}
-                  onTouchEnd={scheduleCloseVol}
+                  
                   className={cn(
                     'appearance-none bg-transparent h-5 -rotate-90 origin-center',
                     '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:-mt-1',
