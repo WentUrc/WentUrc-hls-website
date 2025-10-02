@@ -12,8 +12,8 @@ export default function NavBar() {
       <div className="mx-auto max-w-6xl px-3 sm:px-4 h-14 flex items-center justify-between">
         <div className="min-w-0 flex items-center gap-3">
           <Link href="/" className="min-w-0 flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 rounded-sm">
-            <PlaySquare size={18} className="shrink-0 text-blue-600" />
-            <span className="truncate">WentUrc HLS 列表</span>
+            <PlaySquare size={24} className="shrink-0 text-blue-600" />
+            <span className="truncate select-none">WentUrc HLS 列表</span>
           </Link>
         </div>
         <nav className="flex items-center gap-4 text-sm">

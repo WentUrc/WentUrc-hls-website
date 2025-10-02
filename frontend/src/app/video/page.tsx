@@ -20,6 +20,7 @@ export default function VideoPage() {
   // refs for equal-height behavior on desktop
   const leftRef = useRef<HTMLDivElement | null>(null)
   const rightRef = useRef<HTMLDivElement | null>(null)
+  const [videoReady, setVideoReady] = useState(false)
 
   const load = async () => {
     try {
@@ -40,6 +41,7 @@ export default function VideoPage() {
     }
   }, [list, selectedId])
   const selected = useMemo(() => list.find(i => i.id === selectedId) || null, [list, selectedId])
+  useEffect(() => { setVideoReady(false) }, [selectedId])
   const indexById = useMemo(() => new Map(list.map((t, idx) => [t.id, idx])), [list])
   const gotoByIndex = (idx: number) => {
     if (!list.length) return
@@ -184,8 +186,8 @@ export default function VideoPage() {
                   <div className="p-4">
                     {/* 统一与音频相同的 16:9 容器结构，避免 UA 控件或基线差异导致高度偏差 */}
                     {selected.hlsUrl ? (
-                      <div className="relative w-full aspect-video overflow-hidden rounded-sm bg-black">
-                        <HlsVideo src={selected.hlsUrl} className="absolute inset-0 w-full h-full block" />
+                      <div className={`relative w-full aspect-video overflow-hidden rounded-sm bg-black transition-all duration-500 ease-out ${videoReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}`}>
+                        <HlsVideo src={selected.hlsUrl} className="absolute inset-0 w-full h-full block" onCanPlay={() => setVideoReady(true)} />
                       </div>
                     ) : (
                       <div className="w-full aspect-video grid place-items-center bg-slate-900 text-slate-200 text-sm rounded-sm">无 HLS，可点击上方按钮生成</div>

@@ -11,14 +11,16 @@ export default function Page() {
   <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Link
           href="/video"
-          className="group rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 p-4 flex items-center gap-3 select-none transition-colors"
+          className="group rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 p-4 flex items-center gap-3 select-none transition-colors animate-fade-in-up"
+          style={{ animationDelay: '60ms' }}
         >
           <Video size={24} className="text-slate-700 dark:text-slate-200" />
           <span className="text-base font-medium text-slate-800 dark:text-slate-100">视频</span>
         </Link>
         <Link
           href="/music"
-          className="group rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 p-4 flex items-center gap-3 select-none transition-colors"
+          className="group rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 p-4 flex items-center gap-3 select-none transition-colors animate-fade-in-up"
+          style={{ animationDelay: '140ms' }}
         >
           <Music size={24} className="text-slate-700 dark:text-slate-200" />
           <span className="text-base font-medium text-slate-800 dark:text-slate-100">音乐</span>

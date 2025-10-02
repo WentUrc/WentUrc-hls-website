@@ -2,12 +2,14 @@
 import Hls from 'hls.js'
 import { useEffect, useRef } from 'react'
 
-export function HlsVideo({ src, poster, className }: { src: string, poster?: string, className?: string }) {
+export function HlsVideo({ src, poster, className, onCanPlay }: { src: string, poster?: string, className?: string, onCanPlay?: () => void }) {
   const ref = useRef<HTMLVideoElement | null>(null)
   useEffect(() => {
     const video = ref.current
     if (!video) return
     let hls: Hls | null = null
+    const handleCanPlay = () => { try { onCanPlay?.() } catch { /* noop */ } }
+    video.addEventListener('canplay', handleCanPlay)
     if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src
     } else if (Hls.isSupported()) {
@@ -15,7 +17,7 @@ export function HlsVideo({ src, poster, className }: { src: string, poster?: str
       hls.loadSource(src)
       hls.attachMedia(video)
     }
-    return () => { if (hls) hls.destroy() }
+    return () => { if (hls) hls.destroy(); video.removeEventListener('canplay', handleCanPlay) }
   }, [src])
   return <video ref={ref} poster={poster} controls className={`my-4 rounded-sm overflow-hidden [color-scheme:light] dark:[color-scheme:dark] ${className ?? ''}`} />
 }

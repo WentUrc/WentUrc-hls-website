@@ -5,6 +5,15 @@
 		from { opacity: 0; transform: translate3d(0, 8px, 0); }
 		to   { opacity: 1; transform: translate3d(0, 0, 0); }
 	}
+
+	/* Entrance animation utility */
+	.animate-fade-in-up {
+		animation: fadeInUp 520ms ease-out both;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.animate-fade-in-up { animation: none !important; }
 }
 
 /* Unified scrollbar styles (no arrows), light/dark aware */

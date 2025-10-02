@@ -23,6 +23,9 @@ export default function MusicPage() {
   // refs for equal-height behavior on desktop
   const leftRef = useRef<HTMLDivElement | null>(null)
   const rightRef = useRef<HTMLDivElement | null>(null)
+  // image load state for entrance animation
+  const imgRef = useRef<HTMLImageElement | null>(null)
+  const [imgLoaded, setImgLoaded] = useState(false)
 
   const load = async () => {
     try {
@@ -94,6 +97,12 @@ export default function MusicPage() {
       return () => { window.removeEventListener('resize', apply); window.clearTimeout(id) }
     }
   }, [selectedId, list.length, playMode])
+
+  // mark loaded if the image was cached and already complete
+  useEffect(() => {
+    const el = imgRef.current
+    if (el && el.complete && el.naturalWidth > 0) setImgLoaded(true)
+  }, [selectedId])
 
   const scan = async () => {
     setLoading(true)
@@ -204,8 +213,10 @@ export default function MusicPage() {
                         src="/image/artist.webp"
                         alt="音频占位图"
                         data-image-boundary
-                        className="w-full h-full object-cover rounded-sm"
+                        className={`w-full h-full object-cover rounded-sm ${imgLoaded ? 'animate-fade-in-up' : 'opacity-0'}`}
+                        ref={imgRef}
                         loading="lazy"
+                        onLoad={() => setImgLoaded(true)}
                       />
           {/* 底部渐变：
             - 移动端使用深色渐变（配合白色文字与紧凑控件）

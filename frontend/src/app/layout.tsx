@@ -3,7 +3,8 @@ import localFont from 'next/font/local'
 import "./globals.css";
 import NavBar from '@/components/NavBar'
 import Footer from '@/components/Footer'
-import { Toaster } from 'sonner'
+import AppToaster from '@/components/AppToaster'
+import BackgroundImage from '@/components/BackgroundImage'
 
 const inter = localFont({
   src: "../../public/font/InterVariable.woff2",
@@ -37,12 +38,8 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className={`${inter.className} antialiased bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100 min-h-screen`}>
-        {/* 全局背景：随机图像（不挡交互、低透明、覆盖视口） */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none fixed inset-0 z-0 opacity-10 bg-no-repeat bg-center bg-cover"
-          style={{ backgroundImage: "url('https://api.wenturc.com/')" }}
-        />
+        {/* 全局背景：随机图像，加载完成后再淡入 */}
+        <BackgroundImage src="https://api.wenturc.com/" />
         {/* 遮罩：顶部完全遮挡（白色 / 深色下为黑色），向下渐隐，保证上不可见、下可见 */}
         <div
           aria-hidden="true"
@@ -55,7 +52,7 @@ export default function RootLayout({
           </main>
           <Footer />
         </div>
-        <Toaster richColors position="top-right" theme="system" />
+  <AppToaster />
       </body>
     </html>
   );
