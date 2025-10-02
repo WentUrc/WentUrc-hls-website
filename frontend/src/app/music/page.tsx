@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 // import { HlsAudio } from '@/components/HlsPlayer'
 import { AudioPlayer, type PlayMode } from '@/components/ui/audio-player'
 import { getJSON, postJSON, openScanWS } from '@/lib/api'
@@ -20,6 +20,9 @@ export default function MusicPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   // 播放模式（用于移动端按钮与播放器同步）
   const [playMode, setPlayMode] = useState<PlayMode>('all')
+  // refs for equal-height behavior on desktop
+  const leftRef = useRef<HTMLDivElement | null>(null)
+  const rightRef = useRef<HTMLDivElement | null>(null)
 
   const load = async () => {
     try {
@@ -70,6 +73,27 @@ export default function MusicPage() {
     }
   }
   const cycleMode = () => setPlayMode(m => (m === 'all' ? 'one' : m === 'one' ? 'shuffle' : 'all'))
+
+  // Desktop equal-height: set left list height to match right card height so they stay equal without extra blank space
+  useEffect(() => {
+    const apply = () => {
+      const mq = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : { matches: false }
+      const leftEl = leftRef.current
+      const rightEl = rightRef.current
+      if (!leftEl) return
+      if (!mq.matches) { leftEl.style.height = ''; return }
+      if (rightEl) {
+        const h = rightEl.getBoundingClientRect().height
+        leftEl.style.height = `${Math.max(0, Math.floor(h))}px`
+      }
+    }
+    apply()
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', apply)
+      const id = window.setTimeout(apply, 0)
+      return () => { window.removeEventListener('resize', apply); window.clearTimeout(id) }
+    }
+  }, [selectedId, list.length, playMode])
 
   const scan = async () => {
     setLoading(true)
@@ -144,9 +168,9 @@ export default function MusicPage() {
         {list.length === 0 ? (
           <div className="text-sm text-slate-500">暂无条目</div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
             {/* 左侧：列表（移动端隐藏，仅桌面显示） */}
-            <div className="hidden lg:flex lg:col-span-1 h-full min-h-0 flex-col rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+            <div ref={leftRef} className="hidden lg:flex lg:col-span-1 min-h-0 flex-col rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-sm font-medium">共 {list.length} 条</div>
               <ul className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
                 {list.map(item => {
@@ -166,7 +190,7 @@ export default function MusicPage() {
               </ul>
             </div>
             {/* 右侧：详情（保持与视频一致的 16:9 占位区域） */}
-            <div className="lg:col-span-2 h-full min-h-0 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden flex flex-col">
+            <div ref={rightRef} className="lg:col-span-2 self-start min-h-0 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden flex flex-col">
               {selected ? (
                 <div>
                   <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">

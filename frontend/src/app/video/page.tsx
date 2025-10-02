@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { HlsVideo } from '@/components/HlsPlayer'
 import { getJSON, postJSON, openScanWS } from '@/lib/api'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,9 @@ export default function VideoPage() {
   const hasLogs = logs.length > 0
   // selection for detail pane
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // refs for equal-height behavior on desktop
+  const leftRef = useRef<HTMLDivElement | null>(null)
+  const rightRef = useRef<HTMLDivElement | null>(null)
 
   const load = async () => {
     try {
@@ -53,6 +56,29 @@ export default function VideoPage() {
     const cur = indexById.get(selectedId || '') ?? 0
     gotoByIndex(cur + 1)
   }
+
+  // Desktop equal-height: set left list height to match right card height (no right stretching)
+  useEffect(() => {
+    const apply = () => {
+      const mq = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : { matches: false }
+      const leftEl = leftRef.current
+      const rightEl = rightRef.current
+      if (!leftEl) return
+      // reset both when < lg
+      if (!mq.matches) { leftEl.style.height = ''; return }
+      // set explicit height equal to right
+      if (rightEl) {
+        const h = rightEl.getBoundingClientRect().height
+        leftEl.style.height = `${Math.max(0, Math.floor(h))}px`
+      }
+    }
+    apply()
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', apply)
+      const id = window.setTimeout(apply, 0)
+      return () => { window.removeEventListener('resize', apply); window.clearTimeout(id) }
+    }
+  }, [selectedId, list.length])
 
   const scan = async () => {
     setLoading(true)
@@ -126,9 +152,9 @@ export default function VideoPage() {
         {list.length === 0 ? (
           <div className="text-sm text-slate-500">暂无条目</div>
         ) : (
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
             {/* 左侧：列表（移动端隐藏，仅桌面显示） */}
-            <div className="hidden lg:flex lg:col-span-1 h-full min-h-0 flex-col rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+            <div ref={leftRef} className="hidden lg:flex lg:col-span-1 min-h-0 flex-col rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-sm font-medium">共 {list.length} 条</div>
               <ul className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
                 {list.map(item => {
@@ -148,7 +174,7 @@ export default function VideoPage() {
               </ul>
             </div>
             {/* 右侧：详情 */}
-            <div className="lg:col-span-2 h-full min-h-0 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden flex flex-col">
+            <div ref={rightRef} className="lg:col-span-2 self-start min-h-0 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden flex flex-col">
               {selected ? (
                 <div>
                   <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
