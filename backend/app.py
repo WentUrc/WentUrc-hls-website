@@ -123,6 +123,16 @@ def create_app() -> Quart:
             else:
                 allowed_exact_hosts.add(item)
 
+    # 开发环境默认允许常见本地来源（可用 ALLOW_LOCALHOST_CORS=0 禁用）
+    if (os.getenv('ALLOW_LOCALHOST_CORS', '1') or '1').lower() in ('1', 'true', 'yes', 'on'):
+        dev_origins = [
+            'http://localhost:3000', 'http://127.0.0.1:3000',
+            'http://localhost:5173', 'http://127.0.0.1:5173',
+            'http://localhost:8080', 'http://127.0.0.1:8080',
+            'http://localhost:4321', 'http://127.0.0.1:4321',
+        ]
+        allowed_exact_origins.update(dev_origins)
+
     def _is_origin_allowed(origin: str | None) -> bool:
         if not origin:
             return False
