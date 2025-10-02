@@ -5,7 +5,7 @@ import { AudioPlayer, type PlayMode } from '@/components/ui/audio-player'
 import { getJSON, postJSON, openScanWS } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Window } from '@/components/ui/window'
-import { Music, RefreshCw, History, X } from 'lucide-react'
+import { Music, RefreshCw, History, X, Repeat, Repeat1, Shuffle } from 'lucide-react'
 import { toast } from 'sonner'
 
 type Track = { id: string; artist?: string; title?: string; originalFile?: string; hlsUrl?: string; hasHLS?: boolean; format?: string }
@@ -18,6 +18,8 @@ export default function MusicPage() {
   const hasLogs = logs.length > 0
   // selection for detail pane
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // 播放模式（用于移动端按钮与播放器同步）
+  const [playMode, setPlayMode] = useState<PlayMode>('all')
 
   const load = async () => {
     try {
@@ -67,6 +69,7 @@ export default function MusicPage() {
       gotoByIndex(cur + 1)
     }
   }
+  const cycleMode = () => setPlayMode(m => (m === 'all' ? 'one' : m === 'one' ? 'shuffle' : 'all'))
 
   const scan = async () => {
     setLoading(true)
@@ -123,13 +126,13 @@ export default function MusicPage() {
     <div className="p-4 sm:p-6 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-bold flex items-center gap-2"><Music size={20}/> 音乐列表</h1>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <Button onClick={scan} disabled={loading} variant={loading ? 'outline' : 'default'}>
+        <div className="flex flex-row flex-nowrap items-center gap-2 w-full sm:w-auto">
+          <Button onClick={scan} disabled={loading} variant={loading ? 'outline' : 'default'} className="whitespace-nowrap">
             <RefreshCw className="mr-1" size={16} /> {loading ? '扫描中…' : '开始工作'}
           </Button>
           <Button
             variant="outline"
-            className={hasLogs ? 'border-blue-400/60 text-blue-600 dark:border-blue-500/60 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-900/20' : undefined}
+            className={`${hasLogs ? 'border-blue-400/60 text-blue-600 dark:border-blue-500/60 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-900/20' : ''} whitespace-nowrap`}
             onClick={() => setShowLogs(true)}
           >
             <History className="mr-1" size={16} />
@@ -141,11 +144,11 @@ export default function MusicPage() {
         {list.length === 0 ? (
           <div className="text-sm text-slate-500">暂无条目</div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* 左侧：列表 */}
-            <div className="lg:col-span-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+            {/* 左侧：列表（移动端隐藏，仅桌面显示） */}
+            <div className="hidden lg:flex lg:col-span-1 h-full min-h-0 flex-col rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-sm font-medium">共 {list.length} 条</div>
-              <ul className="max-h-[55vh] lg:max-h-[70vh] overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
+              <ul className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
                 {list.map(item => {
                   const active = item.id === selectedId
                   return (
@@ -163,7 +166,7 @@ export default function MusicPage() {
               </ul>
             </div>
             {/* 右侧：详情（保持与视频一致的 16:9 占位区域） */}
-            <div className="lg:col-span-2 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+            <div className="lg:col-span-2 h-full min-h-0 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden flex flex-col">
               {selected ? (
                 <div>
                   <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
@@ -172,30 +175,62 @@ export default function MusicPage() {
                   </div>
                   <div className="p-4">
                     {/* 16:9 容器内叠放占位图与控制条：总高度与视频一致 */}
-                    <div className="relative w-full aspect-video overflow-hidden rounded-sm bg-slate-100 dark:bg-slate-800">
+                    <div className="relative w-full aspect-video overflow-hidden rounded-sm bg-slate-100 dark:bg-slate-800" data-media-boundary>
                       <img
                         src="/image/artist.webp"
                         alt="音频占位图"
+                        data-image-boundary
                         className="w-full h-full object-cover rounded-sm"
                         loading="lazy"
                       />
-                      {/* 底部轻微渐变，提升控制条可读性 */}
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 sm:h-20 bg-gradient-to-t from-black/40 to-transparent" />
-                      {/* 控制条固定在底部，透明无边框，避免超出 16:9 高度 */}
+                      {/* 底部渐变加深并拉高，提升控制条可读性 */}
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 sm:h-28 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                      {/* 控制条固定在底部：桌面端显示完整控制条；移动端仅显示进度+音量（compact） */}
                       {selected.hlsUrl ? (
-                        <div className="absolute inset-x-0 bottom-0 p-2">
-                          <AudioPlayer
-                            src={selected.hlsUrl}
-                            className="bg-transparent dark:bg-transparent border-0 shadow-none rounded-none"
-                            onPrev={handlePrev}
-                            onNext={handleNext}
-                          />
-                        </div>
+                        <>
+                          {/* 移动端 compact 控制条（图片内） */}
+                          <div className="absolute inset-x-0 bottom-0 p-2 sm:hidden">
+                            <AudioPlayer
+                              src={selected.hlsUrl}
+                              className="bg-transparent dark:bg-transparent border-0 shadow-none rounded-none"
+                              onPrev={handlePrev}
+                              onNext={handleNext}
+                              variant="compact"
+                              mode={playMode}
+                              onModeChange={setPlayMode}
+                            />
+                          </div>
+                          {/* 桌面端完整控制条（图片内） */}
+                          <div className="absolute inset-x-0 bottom-0 p-2 hidden sm:block">
+                            <AudioPlayer
+                              src={selected.hlsUrl}
+                              className="bg-transparent dark:bg-transparent border-0 shadow-none rounded-none"
+                              onPrev={handlePrev}
+                              onNext={handleNext}
+                              mode={playMode}
+                              onModeChange={setPlayMode}
+                            />
+                          </div>
+                        </>
                       ) : (
                         <div className="absolute inset-x-0 bottom-0 p-3 text-xs sm:text-sm text-white/90 dark:text-slate-200/90">
                           无 HLS，可点击上方按钮生成
                         </div>
                       )}
+                    </div>
+                    {/* 移动端：图片下方提供 上一曲 / 下一曲 / 播放模式 切换按钮 */}
+                    <div className="mt-2 flex items-center gap-2 sm:hidden">
+                      <Button variant="outline" size="sm" onClick={() => handlePrev(playMode)}>上一曲</Button>
+                      <Button variant="outline" size="sm" onClick={() => handleNext(playMode)}>下一曲</Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={cycleMode}
+                        aria-label={playMode === 'one' ? '单曲循环' : playMode === 'shuffle' ? '随机播放' : '列表循环'}
+                        title={playMode === 'one' ? '单曲循环' : playMode === 'shuffle' ? '随机播放' : '列表循环'}
+                      >
+                        {playMode === 'one' ? <Repeat1 size={16} /> : playMode === 'shuffle' ? <Shuffle size={16} /> : <Repeat size={16} />}
+                      </Button>
                     </div>
                     <div className="mt-3 w-full text-xs text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-2 w-full">

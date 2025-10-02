@@ -37,6 +37,22 @@ export default function VideoPage() {
     }
   }, [list, selectedId])
   const selected = useMemo(() => list.find(i => i.id === selectedId) || null, [list, selectedId])
+  const indexById = useMemo(() => new Map(list.map((t, idx) => [t.id, idx])), [list])
+  const gotoByIndex = (idx: number) => {
+    if (!list.length) return
+    const n = ((idx % list.length) + list.length) % list.length
+    setSelectedId(list[n].id)
+  }
+  const handlePrev = () => {
+    if (!list.length) return
+    const cur = indexById.get(selectedId || '') ?? 0
+    gotoByIndex(cur - 1)
+  }
+  const handleNext = () => {
+    if (!list.length) return
+    const cur = indexById.get(selectedId || '') ?? 0
+    gotoByIndex(cur + 1)
+  }
 
   const scan = async () => {
     setLoading(true)
@@ -92,13 +108,13 @@ export default function VideoPage() {
     <div className="p-4 sm:p-6 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-bold flex items-center gap-2"><Play size={20}/> 视频列表</h1>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-          <Button onClick={scan} disabled={loading} variant={loading ? 'outline' : 'default'}>
+        <div className="flex flex-row flex-nowrap items-center gap-2 w-full sm:w-auto">
+          <Button onClick={scan} disabled={loading} variant={loading ? 'outline' : 'default'} className="whitespace-nowrap">
             <RefreshCw className="mr-1" size={16} /> {loading ? '扫描中…' : '开始工作'}
           </Button>
           <Button
             variant="outline"
-            className={hasLogs ? 'border-blue-400/60 text-blue-600 dark:border-blue-500/60 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-900/20' : undefined}
+            className={`${hasLogs ? 'border-blue-400/60 text-blue-600 dark:border-blue-500/60 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-900/20' : ''} whitespace-nowrap`}
             onClick={() => setShowLogs(true)}
           >
             <History className="mr-1" size={16} />
@@ -110,11 +126,11 @@ export default function VideoPage() {
         {list.length === 0 ? (
           <div className="text-sm text-slate-500">暂无条目</div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* 左侧：列表 */}
-            <div className="lg:col-span-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+            {/* 左侧：列表（移动端隐藏，仅桌面显示） */}
+            <div className="hidden lg:flex lg:col-span-1 h-full min-h-0 flex-col rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-sm font-medium">共 {list.length} 条</div>
-              <ul className="max-h-[55vh] lg:max-h-[70vh] overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
+              <ul className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
                 {list.map(item => {
                   const active = item.id === selectedId
                   return (
@@ -132,7 +148,7 @@ export default function VideoPage() {
               </ul>
             </div>
             {/* 右侧：详情 */}
-            <div className="lg:col-span-2 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+            <div className="lg:col-span-2 h-full min-h-0 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden flex flex-col">
               {selected ? (
                 <div>
                   <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
@@ -140,11 +156,19 @@ export default function VideoPage() {
                     <div className="text-slate-600 dark:text-slate-300 sm:ml-2 truncate">{selected.artist || '—'}</div>
                   </div>
                   <div className="p-4">
+                    {/* 统一与音频相同的 16:9 容器结构，避免 UA 控件或基线差异导致高度偏差 */}
                     {selected.hlsUrl ? (
-                      <HlsVideo src={selected.hlsUrl} className="w-full aspect-video bg-black" />
+                      <div className="relative w-full aspect-video overflow-hidden rounded-sm bg-black">
+                        <HlsVideo src={selected.hlsUrl} className="absolute inset-0 w-full h-full block" />
+                      </div>
                     ) : (
-                      <div className="w-full aspect-video grid place-items-center bg-slate-900 text-slate-200 text-sm">无 HLS，可点击上方按钮生成</div>
+                      <div className="w-full aspect-video grid place-items-center bg-slate-900 text-slate-200 text-sm rounded-sm">无 HLS，可点击上方按钮生成</div>
                     )}
+                    {/* 移动端：列表隐藏时提供上一曲/下一曲 */}
+                    <div className="mt-2 flex items-center gap-2 sm:hidden">
+                      <Button variant="outline" size="sm" onClick={handlePrev}>上一个</Button>
+                      <Button variant="outline" size="sm" onClick={handleNext}>下一个</Button>
+                    </div>
                     <div className="mt-3 w-full text-xs text-slate-600 dark:text-slate-300">
                       <div className="flex items-center gap-2 w-full">
                         <div className="min-w-0 flex-1 flex items-center">
