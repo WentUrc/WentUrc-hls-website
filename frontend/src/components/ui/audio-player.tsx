@@ -212,8 +212,12 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
   const togglePlay = () => {
     const el = audioRef.current
     if (!el) return
-    if (!ready) return
-    if (playing) el.pause(); else el.play().catch(() => {})
+    // 即使还未 ready，也尝试触发播放（移动端需要手势触发）
+    if (playing) {
+      el.pause()
+    } else {
+      el.play().catch(() => { /* 需用户手势或资源未就绪时忽略错误 */ })
+    }
   }
 
   const seekTo = (pct: number) => {
@@ -400,6 +404,15 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
     >
       <audio ref={audioRef} preload="metadata" className="hidden" />
       <div className="flex items-center gap-2">
+        {/* 播放/暂停按钮（移动端紧凑模式需要手势触发播放） */}
+        <button
+          type="button"
+          onClick={togglePlay}
+          className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-white/30 text-white bg-black/30 hover:bg-black/40 backdrop-blur-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+          aria-label={playing ? '暂停' : '播放'}
+        >
+          {playing ? <Pause size={14} /> : <Play size={14} />}
+        </button>
         {/* 左侧当前时间 */}
         <div className="text-[11px] sm:text-xs tabular-nums text-white/90 dark:text-slate-200/90 min-w-[44px] text-right">{formatTime(current)}</div>
         {/* 中部更长的进度条 */}
