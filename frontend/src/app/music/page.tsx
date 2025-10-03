@@ -222,7 +222,7 @@ export default function MusicPage() {
           {/* 底部渐变：
             - 移动端使用深色渐变（配合白色文字与紧凑控件）
             - 桌面端按主题变化：浅色用白色渐变，深色用黑色渐变 */}
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 via-black/35 to-transparent lg:hidden" />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white/80 via-white/40 to-transparent dark:from-black/70 dark:via-black/35 dark:to-transparent lg:hidden" />
                       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/80 via-white/40 to-transparent dark:from-black/70 dark:via-black/35 dark:to-transparent hidden lg:block" />
                       {/* 控制条固定在底部：桌面端显示完整控制条；移动端仅显示进度+音量（compact） */}
                       {selected.hlsUrl ? (
