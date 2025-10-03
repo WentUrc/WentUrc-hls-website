@@ -9,6 +9,10 @@ export interface ProgressBarProps {
   onSeekStart?: (initialPct: number) => void
   onSeekChange?: (pct: number) => void
   onSeekCommit?: (pct: number | null) => void
+  // optional preview tooltip while dragging/moving
+  showPreviewTooltip?: boolean
+  formatPreview?: (seconds: number) => string
+  durationSeconds?: number
 }
 
 export function ProgressBar({
@@ -20,9 +24,14 @@ export function ProgressBar({
   onSeekStart,
   onSeekChange,
   onSeekCommit,
+  showPreviewTooltip,
+  formatPreview,
+  durationSeconds,
 }: ProgressBarProps) {
   const bgTrack = variant === 'overlay' ? 'bg-slate-200/80 dark:bg-slate-700/80' : 'bg-slate-200 dark:bg-slate-700'
   const bgBuffered = variant === 'overlay' ? 'bg-slate-300/90 dark:bg-slate-600/90' : 'bg-slate-300 dark:bg-slate-600'
+  // simple tooltip state using HTML title fallback; callers can enhance later
+  const useTooltip = !!showPreviewTooltip && Number.isFinite(durationSeconds)
 
   return (
     <div className={cn('relative h-5', className)}>
@@ -35,6 +44,7 @@ export function ProgressBar({
         max={100}
         step={0.1}
         value={valuePct}
+        title={useTooltip && durationSeconds ? (formatPreview ? formatPreview((valuePct / 100) * durationSeconds) : undefined) : undefined}
         onMouseDown={(e) => {
           const v = parseFloat((e.currentTarget as HTMLInputElement).value)
           onSeekStart?.(Number.isFinite(v) ? v : valuePct)

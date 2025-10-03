@@ -2,9 +2,13 @@
 import Hls from 'hls.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
-import { Pause, Play, Volume2, VolumeX, SkipBack, SkipForward, Repeat, Repeat1, Shuffle } from 'lucide-react'
+import { Pause, Play, Volume2, VolumeX, SkipBack, SkipForward } from 'lucide-react'
 import ProgressBar from './ProgressBar'
 import VolumePopover from './VolumePopover'
+import ModeButton from './ModeButton'
+import TimeText from './TimeText'
+import VolumeInlineSlider from './VolumeInlineSlider'
+import { formatTime } from '@/lib/time'
 
 export interface AudioPlayerProps {
   src: string
@@ -21,14 +25,7 @@ export interface AudioPlayerProps {
 
 export type PlayMode = 'all' | 'one' | 'shuffle'
 
-function formatTime(sec: number): string {
-  if (!isFinite(sec) || sec < 0) return '--:--'
-  const s = Math.floor(sec % 60)
-  const m = Math.floor(sec / 60)
-  const mm = m.toString()
-  const ss = s.toString().padStart(2, '0')
-  return `${mm}:${ss}`
-}
+// 时间格式化方法已抽取到 @/lib/time
 
 export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant = 'full', mode: modeProp, onModeChange }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -295,24 +292,17 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
         >
           <SkipForward size={16} />
         </button>
-        <button
-          type="button"
-          onClick={cycleMode}
-          className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-slate-300 text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
-          aria-label={mode === 'one' ? '单曲循环' : mode === 'shuffle' ? '随机播放' : '列表循环'}
-          title={mode === 'one' ? '单曲循环' : mode === 'shuffle' ? '随机播放' : '列表循环'}
-        >
-          {mode === 'one' ? <Repeat1 size={16} /> : mode === 'shuffle' ? <Shuffle size={16} /> : <Repeat size={16} />}
-        </button>
-        <div className="ml-1 text-xs tabular-nums text-slate-600 dark:text-slate-300 min-w-[56px] text-right">
-          {formatTime(current)}
-        </div>
+        <ModeButton mode={mode} onClick={cycleMode} />
+        <TimeText value={formatTime(current)} alignRight className="ml-1" />
         <div className="flex-1 mx-2">
           <ProgressBar
             valuePct={sliderValue}
             bufferedPct={bufferedPct}
             ready={ready}
             variant="default"
+            showPreviewTooltip
+            durationSeconds={Number.isFinite(duration) ? duration : undefined}
+            formatPreview={formatTime}
             onSeekStart={(initialPct) => {
               seekingRef.current = true
               setSeeking(true)
@@ -324,36 +314,13 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
             onSeekCommit={(pct) => commitSeek(pct)}
           />
         </div>
-        <div className="text-xs tabular-nums text-slate-600 dark:text-slate-300 min-w-[56px]">
-          {formatTime(duration)}
-        </div>
-        <button
-          type="button"
-          onClick={toggleMute}
-          className="h-9 w-9 inline-flex items-center justify-center rounded-md border border-slate-300 text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-100 dark:hover:bg-slate-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900"
-          aria-label={muted ? '取消静音' : '静音'}
-          disabled={!ready}
-        >
-          {muted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
-        </button>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={volume}
-          onChange={(e) => changeVolume(parseFloat(e.target.value))}
-          className={cn(
-            'w-24 hidden sm:block appearance-none bg-transparent h-5 focus:outline-none',
-            '[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:-mt-1 [&::-webkit-slider-thumb]:border-0 [&::-webkit-slider-thumb]:outline-none [&::-webkit-slider-thumb]:shadow-none [&::-webkit-slider-thumb]:transition-none',
-            '[&::-webkit-slider-thumb:active]:h-3.5 [&::-webkit-slider-thumb:active]:w-3.5',
-            '[&::-webkit-slider-runnable-track]:appearance-none [&::-webkit-slider-runnable-track]:h-1.5 [&::-webkit-slider-runnable-track]:bg-slate-200 dark:[&::-webkit-slider-runnable-track]:bg-slate-700 [&::-webkit-slider-runnable-track]:rounded-full',
-            // Firefox styling
-            '[&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:outline-none [&::-moz-range-thumb]:shadow-none [&::-moz-range-thumb]:transition-none',
-            '[&::-moz-range-track]:h-1.5 [&::-moz-range-track]:bg-slate-200 dark:[&::-moz-range-track]:bg-slate-700 [&::-moz-range-track]:rounded-full',
-          )}
-          aria-label="音量"
-          disabled={!ready}
+        <TimeText value={formatTime(duration)} />
+        <VolumeInlineSlider
+          volume={volume}
+          muted={muted}
+          ready={ready}
+          onToggleMute={toggleMute}
+          onChange={(v) => changeVolume(v)}
         />
       </div>
     </div>
