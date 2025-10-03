@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# 将 video-upload 中的视频转为 HLS 输出到 video-hls，并基于 HLS 生成播放列表；
-# 为防止删除原视频后信息丢失，会在每个 HLS 目录写入 meta.json（artist/title/originalFile/format）。
+
+# 该脚本作为早期 video 转换工具，现已弃用
 
 import os
 import json

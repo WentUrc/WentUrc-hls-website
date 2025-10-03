@@ -1,4 +1,26 @@
 #!/bin/bash
+
+# 该脚本作为早期音频转换 m3u8 使用，现已弃用
+# 如要使用，需要将 ffmpeg 安装到系统中
+# 该脚本会扫描 music-upload 目录下的音频文件，转换为 HLS 格式，输出到 music-hls 目录
+# 并生成一个 playlist.json 播放列表文件
+# 支持的音频格式：.flac, .mp3, .wav, .m4a
+# 生成的 playlist.json 包含每个音频文件的 id, artist, title, originalFile, hlsUrl, hasHLS, format 字段
+# id 由安全文件名的 MD5 前 8 位生成
+# artist 和 title 从文件名解析，格式为 "Artist - Title"，否则 artist 为 "未知艺术家"，title 为文件名
+# originalFile 为原始文件的相对路径
+# hlsUrl 为生成的 HLS 播放列表的 URL，如果转换失败则为 null
+# hasHLS 为布尔值，表示是否成功生成 HLS
+# format 为原始文件的扩展名
+# 该脚本会跳过已存在 HLS 的文件，避免重复转换
+# 该脚本会写入 meta.json 文件到每个 HLS 目录，包含 originalFile, artist, title 信息
+# 以便后续从 HLS 恢复信息
+# 
+# 若要作为站点访问资源，需要使用 Nginx 或其他静态文件服务器
+# 将 /muisc-hls 映射到 music-hls 目录
+# 将 /video-hls 映射到 video-hls 目录
+# playlist.json 作为列表可以给播放器使用
+
 set -euo pipefail
 
 # Resolve project paths relative to this script for portability (dev and prod)
