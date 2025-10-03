@@ -1,5 +1,5 @@
 import { Repeat, Repeat1, Shuffle } from 'lucide-react'
-import { PlayMode } from './index'
+import type { PlayMode } from './index'
 import { cn } from '@/lib/utils'
 
 export interface ModeButtonProps {
