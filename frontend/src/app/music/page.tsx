@@ -6,6 +6,7 @@ import { AudioPlayer, type PlayMode } from '@/components/ui/audio-player'
 import { getJSON, postJSON, openScanWS } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Window } from '@/components/ui/window'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Music, RefreshCw, History, X, Repeat, Repeat1, Shuffle } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -15,30 +16,29 @@ export default function MusicPage() {
   const [list, setList] = useState<Track[]>([])
   const [logs, setLogs] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  const [listLoading, setListLoading] = useState(true)
   const [showLogs, setShowLogs] = useState(false)
   const hasLogs = logs.length > 0
-  // selection for detail pane
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  // 播放模式（用于移动端按钮与播放器同步）
   const [playMode, setPlayMode] = useState<PlayMode>('all')
-  // refs for equal-height behavior on desktop
   const leftRef = useRef<HTMLDivElement | null>(null)
   const rightRef = useRef<HTMLDivElement | null>(null)
-  // image load state for entrance animation
   const imgRef = useRef<HTMLImageElement | null>(null)
   const [imgLoaded, setImgLoaded] = useState(false)
 
   const load = async () => {
+    setListLoading(true)
     try {
       const data = await getJSON<Track[]>('/api/music/playlist')
       setList(data)
     } catch (e) {
       setLogs([`加载失败: ${String((e as Error).message)}`])
+    } finally {
+      setListLoading(false)
     }
   }
-  useEffect(() => { load() }, [])
 
-  // initialize selected item when list loads or changes
+  useEffect(() => { load() }, [])
   useEffect(() => {
     if (!list.length) { setSelectedId(null); return }
     if (!selectedId || !list.some(i => i.id === selectedId)) {
@@ -78,28 +78,37 @@ export default function MusicPage() {
   }
   const cycleMode = () => setPlayMode(m => (m === 'all' ? 'one' : m === 'one' ? 'shuffle' : 'all'))
 
-  // Desktop equal-height: set left list height to match right card height so they stay equal without extra blank space
   useEffect(() => {
+    const mq = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : undefined
+    const leftEl = leftRef.current
+    const rightEl = rightRef.current
+    if (!leftEl || !rightEl) return
+
     const apply = () => {
-      const mq = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : { matches: false }
-      const leftEl = leftRef.current
-      const rightEl = rightRef.current
-      if (!leftEl) return
-      if (!mq.matches) { leftEl.style.height = ''; return }
-      if (rightEl) {
-        const h = rightEl.getBoundingClientRect().height
-        leftEl.style.height = `${Math.max(0, Math.floor(h))}px`
+      if (!leftEl || !rightEl) return
+      if (!mq?.matches) {
+        leftEl.style.height = ''
+        return
       }
+      const h = rightEl.getBoundingClientRect().height
+      leftEl.style.height = `${Math.max(0, Math.floor(h))}px`
     }
+
+    const ro = new ResizeObserver(() => apply())
+    ro.observe(rightEl)
+
+    window.addEventListener('resize', apply)
+
     apply()
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', apply)
-      const id = window.setTimeout(apply, 0)
-      return () => { window.removeEventListener('resize', apply); window.clearTimeout(id) }
+    const id = window.setTimeout(apply, 0)
+
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', apply)
+      window.clearTimeout(id)
     }
   }, [selectedId, list.length, playMode])
 
-  // mark loaded if the image was cached and already complete
   useEffect(() => {
     const el = imgRef.current
     if (el && el.complete && el.naturalWidth > 0) setImgLoaded(true)
@@ -119,7 +128,7 @@ export default function MusicPage() {
         },
         onError: (msg) => {
           setLogs(prev => [...prev, `ERROR: ${msg}`])
-          // 常见提示映射
+
           if (/already running/i.test(msg)) {
             toast.error('有一个音乐扫描正在进行中，请稍后再试')
           } else if (/debounced/i.test(msg)) {
@@ -134,7 +143,7 @@ export default function MusicPage() {
         onClose: () => { if (ws) ws = null }
       })
     } catch {
-      // fallback: use HTTP POST once
+
       try {
         const data = await postJSON<{ logs?: string[]; result?: unknown }>('/api/scan/music')
         setLogs(data.logs || [])
@@ -175,11 +184,43 @@ export default function MusicPage() {
         </div>
       </div>
       <section>
-        {list.length === 0 ? (
+        {listLoading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+            <div ref={leftRef} className="hidden lg:flex lg:col-span-1 min-h-0 flex-col rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <ul className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <li key={i} className="px-4 py-3">
+                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div ref={rightRef} className="lg:col-span-2 min-h-0 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+              <div className="p-4 space-y-3">
+                <Skeleton className="w-full aspect-video" />
+                <div className="flex items-center gap-2 lg:hidden">
+                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-8 w-8" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : list.length === 0 ? (
           <div className="text-sm text-slate-500">暂无条目</div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-            {/* 左侧：列表（移动端隐藏，仅桌面显示） */}
             <div ref={leftRef} className="hidden lg:flex lg:col-span-1 min-h-0 flex-col rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-sm font-medium">共 {list.length} 条</div>
               <ul className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
@@ -199,8 +240,7 @@ export default function MusicPage() {
                 })}
               </ul>
             </div>
-            {/* 右侧：详情（保持与视频一致的 16:9 占位区域） */}
-            <div ref={rightRef} className="lg:col-span-2 self-start min-h-0 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden flex flex-col">
+            <div ref={rightRef} className="lg:col-span-2 min-h-0 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden flex flex-col">
               {selected ? (
                 <div>
                   <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
@@ -208,7 +248,6 @@ export default function MusicPage() {
                     <div className="text-slate-600 dark:text-slate-300 sm:ml-2 truncate">{selected.artist || '—'}</div>
                   </div>
                   <div className="p-4">
-                    {/* 16:9 容器内叠放占位图与控制条：总高度与视频一致 */}
                     <div className="relative w-full aspect-video overflow-hidden rounded-sm bg-slate-100 dark:bg-slate-800" data-media-boundary>
                       <Image
                         src="/image/artist.webp"
@@ -219,15 +258,10 @@ export default function MusicPage() {
                         className={`object-cover rounded-sm ${imgLoaded ? 'animate-fade-in-up' : 'opacity-0'}`}
                         onLoad={() => setImgLoaded(true)}
                       />
-          {/* 底部渐变：
-            - 移动端使用深色渐变（配合白色文字与紧凑控件）
-            - 桌面端按主题变化：浅色用白色渐变，深色用黑色渐变 */}
                       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white/80 via-white/40 to-transparent dark:from-black/70 dark:via-black/35 dark:to-transparent lg:hidden" />
                       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white/80 via-white/40 to-transparent dark:from-black/70 dark:via-black/35 dark:to-transparent hidden lg:block" />
-                      {/* 控制条固定在底部：桌面端显示完整控制条；移动端仅显示进度+音量（compact） */}
                       {selected.hlsUrl ? (
                         <>
-                          {/* <lg 使用精简版（进度+音量） */}
                           <div className="absolute inset-x-0 bottom-0 p-2 lg:hidden">
                             <AudioPlayer
                               src={selected.hlsUrl}
@@ -239,7 +273,6 @@ export default function MusicPage() {
                               onModeChange={setPlayMode}
                             />
                           </div>
-                          {/* lg+ 使用完整控制条（图片内） */}
                           <div className="absolute inset-x-0 bottom-0 p-2 hidden lg:block">
                             <AudioPlayer
                               src={selected.hlsUrl}
@@ -257,7 +290,6 @@ export default function MusicPage() {
                         </div>
                       )}
                     </div>
-                    {/* 列表在 <lg 隐藏，因此在 <lg 提供切换 + 模式按钮（含平板尺寸） */}
                     <div className="mt-2 flex items-center gap-2 lg:hidden">
                       <Button variant="outline" size="sm" onClick={() => handlePrev(playMode)}>上一曲</Button>
                       <Button variant="outline" size="sm" onClick={() => handleNext(playMode)}>下一曲</Button>

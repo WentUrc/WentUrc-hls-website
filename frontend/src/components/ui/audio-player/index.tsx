@@ -16,16 +16,12 @@ export interface AudioPlayerProps {
   autoPlay?: boolean
   onPrev?: (mode: PlayMode) => void
   onNext?: (mode: PlayMode) => void
-  // UI variant: full (default) shows完整控制; compact 仅显示进度+音量，用于叠加在图片底部
   variant?: 'full' | 'compact'
-  // 受控播放模式（可选）。若提供，组件将使用此模式并通过 onModeChange 通知外部。
   mode?: PlayMode
   onModeChange?: (mode: PlayMode) => void
 }
 
 export type PlayMode = 'all' | 'one' | 'shuffle'
-
-// 时间格式化方法已抽取到 @/lib/time
 
 export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant = 'full', mode: modeProp, onModeChange }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -41,22 +37,16 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
   const [volume, setVolume] = useState(1)
   const [showVol, setShowVol] = useState(false)
   const volWrapRef = useRef<HTMLDivElement | null>(null)
-  // remember if it was playing when user begins seeking, so we can pause during drag and resume afterward
   const wasPlayingRef = useRef(false)
 
-  // keep a ref in sync to avoid stale closure inside media event listeners
   useEffect(() => { seekingRef.current = seeking }, [seeking])
 
-  // moved volume popover effects into VolumePopover
-
-  // removed: timed auto-close; keep manual toggle and outside-click close only
   const [internalMode, setInternalMode] = useState<PlayMode>('all')
   const mode = modeProp ?? internalMode
   const setMode = (m: PlayMode) => {
     if (onModeChange) onModeChange(m); else setInternalMode(m)
   }
 
-  // attach HLS
   useEffect(() => {
     const el = audioRef.current
     if (!el) return
@@ -71,7 +61,6 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
     const attachListeners = () => {
       const onLoadedMeta = () => { setDuration(el.duration) }
       const onTimeUpdate = () => {
-        // 拖动中不让 timeupdate 反向推动 current，避免手柄被“抢回去”造成跳变
         if (seekingRef.current) return
         setCurrent(el.currentTime)
       }
@@ -133,17 +122,14 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
     }
   }, [src, autoPlay])
 
-  // reflect loop based on mode
   useEffect(() => {
     if (audioRef.current) audioRef.current.loop = (mode === 'one')
   }, [mode])
 
-  // on ended -> ask parent to go next when needed
   useEffect(() => {
     const el = audioRef.current
     if (!el) return
     const handle = () => {
-      // 单曲循环由浏览器 loop 处理；其余交给父组件
       if (mode === 'one') return
       onNext?.(mode)
     }
@@ -164,7 +150,6 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
   const togglePlay = () => {
     const el = audioRef.current
     if (!el) return
-    // 即使还未 ready，也尝试触发播放（移动端需要手势触发）
     if (playing) {
       el.pause()
     } else {
@@ -197,10 +182,8 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
     el.muted = el.volume === 0
   }
 
-  // commit seeking: jump to pct, optimistically sync UI current to avoid one-frame fallback, and optionally resume
   const commitSeek = (pct: number | null) => {
     if (!ready || pct == null || !isFinite(duration) || duration <= 0) {
-      // even if invalid, still clear seeking flags
       setSeeking(false)
       seekingRef.current = false
       setSeekValuePct(null)
@@ -210,23 +193,18 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
       wasPlayingRef.current = false
       return
     }
-    // perform the seek on media element
     seekTo(pct)
-    // optimistically set current to target time to keep slider from snapping back for a frame
     const targetTime = (pct / 100) * duration
     setCurrent(targetTime)
-    // close seeking guard and clear temp value
     setSeeking(false)
     seekingRef.current = false
     setSeekValuePct(null)
-    // resume if it was playing
     if (wasPlayingRef.current) {
       audioRef.current?.play().catch(() => { /* ignore autoplay restrictions */ })
     }
     wasPlayingRef.current = false
   }
 
-  // keyboard shortcuts on wrapper
   const onKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (e) => {
     if (e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); togglePlay() }
     else if (e.key === 'ArrowLeft') { e.preventDefault(); stepSeek(-5) }
@@ -243,12 +221,10 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
 
   const sliderValue = useMemo(() => {
     if (!ready) return 0
-    // 拖动中：使用 seekValuePct 作为受控值，避免 timeupdate 推动跳变
     if (seeking && seekValuePct != null) return seekValuePct
     return progress
   }, [ready, seeking, seekValuePct, progress])
 
-  // 完整样式（不再包含 <audio>，以便在 variant 切换时复用同一音频元素）
   const fullControls = (
     <div
       className={cn(
@@ -326,7 +302,6 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
     </div>
   )
 
-  // 精简样式：仅进度 + 音量 + 两端时间（不包含 <audio>）
   const compactControls = (
     <div
       className={cn(
@@ -340,7 +315,7 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
       aria-label="音频播放器（精简）"
     >
       <div className="flex items-center gap-2">
-        {/* 播放/暂停按钮（移动端紧凑模式需要手势触发播放） */}
+        {/* 播放/暂停按钮 */}
         <button
           type="button"
           onClick={togglePlay}
@@ -349,9 +324,9 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
         >
           {playing ? <Pause size={14} /> : <Play size={14} />}
         </button>
-        {/* 左侧当前时间 */}
+        {/* 时间 */}
         <div className="text-[11px] sm:text-xs tabular-nums text-slate-900/90 dark:text-slate-200/90 min-w-[44px] text-right">{formatTime(current)}</div>
-        {/* 中部更长的进度条 */}
+        {/* 进度条 */}
         <div className="flex-1">
           <div className="relative h-5">
             <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1.5 rounded-full bg-slate-200/80 dark:bg-slate-700/80">
@@ -395,9 +370,9 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
             />
           </div>
         </div>
-        {/* 右侧总时长 */}
+        {/* 总时长 */}
   <div className="text-[11px] sm:text-xs tabular-nums text-slate-900/90 dark:text-slate-200/90 min-w-[44px]">{formatTime(duration)}</div>
-        {/* 音量按钮 + 上拉式音量面板（不占行） */}
+        {/* 音量按钮 + 音量面板 */}
         <div className="relative" ref={volWrapRef}>
           <button
             type="button"
@@ -421,7 +396,6 @@ export function AudioPlayer({ src, className, autoPlay, onPrev, onNext, variant 
     </div>
   )
 
-  // 顶层渲染：始终渲染同一个隐藏的 <audio>，避免在 variant 切换时中断播放
   return (
     <>
       <audio ref={audioRef} preload="metadata" className="hidden" />

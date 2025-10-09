@@ -4,6 +4,7 @@ import { HlsVideo } from '@/components/HlsPlayer'
 import { getJSON, postJSON, openScanWS } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Window } from '@/components/ui/window'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Play, RefreshCw, History, X } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -13,29 +14,28 @@ export default function VideoPage() {
   const [list, setList] = useState<Track[]>([])
   const [logs, setLogs] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
+  const [listLoading, setListLoading] = useState(true)
   const [showLogs, setShowLogs] = useState(false)
   const hasLogs = logs.length > 0
-  // selection for detail pane
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  // refs for equal-height behavior on desktop
   const leftRef = useRef<HTMLDivElement | null>(null)
   const rightRef = useRef<HTMLDivElement | null>(null)
   const [videoReady, setVideoReady] = useState(false)
 
   const load = async () => {
+    setListLoading(true)
     try {
       const data = await getJSON<Track[]>('/api/video/playlist')
       setList(data)
     } catch (e) {
       setLogs([`加载失败: ${String((e as Error).message)}`])
+    } finally {
+      setListLoading(false)
     }
   }
   useEffect(() => { load() }, [])
-
-  // initialize selected item when list loads or changes
   useEffect(() => {
     if (!list.length) { setSelectedId(null); return }
-    // keep previous selection if still exists, otherwise select first
     if (!selectedId || !list.some(i => i.id === selectedId)) {
       setSelectedId(list[0].id)
     }
@@ -59,26 +59,29 @@ export default function VideoPage() {
     gotoByIndex(cur + 1)
   }
 
-  // Desktop equal-height: set left list height to match right card height (no right stretching)
   useEffect(() => {
+    const mq = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : undefined
+    const leftEl = leftRef.current
+    const rightEl = rightRef.current
+    if (!leftEl || !rightEl) return
+
     const apply = () => {
-      const mq = typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)') : { matches: false }
-      const leftEl = leftRef.current
-      const rightEl = rightRef.current
-      if (!leftEl) return
-      // reset both when < lg
-      if (!mq.matches) { leftEl.style.height = ''; return }
-      // set explicit height equal to right
-      if (rightEl) {
-        const h = rightEl.getBoundingClientRect().height
-        leftEl.style.height = `${Math.max(0, Math.floor(h))}px`
-      }
+      if (!leftEl || !rightEl) return
+      if (!mq?.matches) { leftEl.style.height = ''; return }
+      const h = rightEl.getBoundingClientRect().height
+      leftEl.style.height = `${Math.max(0, Math.floor(h))}px`
     }
+
+    const ro = new ResizeObserver(() => apply())
+    ro.observe(rightEl)
+    window.addEventListener('resize', apply)
     apply()
-    if (typeof window !== 'undefined') {
-      window.addEventListener('resize', apply)
-      const id = window.setTimeout(apply, 0)
-      return () => { window.removeEventListener('resize', apply); window.clearTimeout(id) }
+    const id = window.setTimeout(apply, 0)
+    return () => {
+      ro.disconnect()
+      
+      window.removeEventListener('resize', apply)
+      window.clearTimeout(id)
     }
   }, [selectedId, list.length])
 
@@ -110,7 +113,6 @@ export default function VideoPage() {
         onClose: () => { if (ws) ws = null }
       })
     } catch {
-      // fallback: use HTTP POST once
       try {
         const data = await postJSON<{ logs?: string[]; result?: unknown }>('/api/scan/video')
         setLogs(data.logs || [])
@@ -151,11 +153,42 @@ export default function VideoPage() {
         </div>
       </div>
       <section>
-        {list.length === 0 ? (
+        {listLoading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+            <div ref={leftRef} className="hidden lg:flex lg:col-span-1 min-h-0 flex-col rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <ul className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <li key={i} className="px-4 py-3">
+                    <Skeleton className="h-4 w-3/4 mb-2" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div ref={rightRef} className="lg:col-span-2 min-h-0 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+              <div className="p-4 space-y-3">
+                <Skeleton className="w-full aspect-video" />
+                <div className="flex items-center gap-2 lg:hidden">
+                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-8 w-20" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : list.length === 0 ? (
           <div className="text-sm text-slate-500">暂无条目</div>
         ) : (
   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-            {/* 左侧：列表（移动端隐藏，仅桌面显示） */}
             <div ref={leftRef} className="hidden lg:flex lg:col-span-1 min-h-0 flex-col rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 text-sm font-medium">共 {list.length} 条</div>
               <ul className="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-700">
@@ -175,8 +208,7 @@ export default function VideoPage() {
                 })}
               </ul>
             </div>
-            {/* 右侧：详情 */}
-            <div ref={rightRef} className="lg:col-span-2 self-start min-h-0 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden flex flex-col">
+            <div ref={rightRef} className="lg:col-span-2 min-h-0 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden flex flex-col">
               {selected ? (
                 <div>
                   <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
@@ -184,7 +216,6 @@ export default function VideoPage() {
                     <div className="text-slate-600 dark:text-slate-300 sm:ml-2 truncate">{selected.artist || '—'}</div>
                   </div>
                   <div className="p-4">
-                    {/* 统一与音频相同的 16:9 容器结构，避免 UA 控件或基线差异导致高度偏差 */}
                     {selected.hlsUrl ? (
                       <div className={`relative w-full aspect-video overflow-hidden rounded-sm bg-black transition-all duration-500 ease-out ${videoReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}`}>
                         <HlsVideo src={selected.hlsUrl} className="absolute inset-0 w-full h-full block" onCanPlay={() => setVideoReady(true)} />
@@ -192,7 +223,6 @@ export default function VideoPage() {
                     ) : (
                       <div className="w-full aspect-video grid place-items-center bg-slate-900 text-slate-200 text-sm rounded-sm">无 HLS，可点击上方按钮生成</div>
                     )}
-                    {/* 列表在 <lg 隐藏，因此在 <lg 提供切换按钮（含平板尺寸） */}
                     <div className="mt-2 flex items-center gap-2 lg:hidden">
                       <Button variant="outline" size="sm" onClick={handlePrev}>上一个</Button>
                       <Button variant="outline" size="sm" onClick={handleNext}>下一个</Button>

@@ -9,8 +9,6 @@ interface BackgroundImageProps {
 
 export default function BackgroundImage({ src, className }: BackgroundImageProps) {
   const [loaded, setLoaded] = useState(false)
-
-  // memoize src to avoid refetching unless it changes
   const imgSrc = useMemo(() => src, [src])
 
   useEffect(() => {

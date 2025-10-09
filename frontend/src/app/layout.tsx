@@ -34,13 +34,10 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <head>
-        {/* 移动端适配 */}
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </head>
       <body className={`${inter.className} antialiased bg-white text-slate-900 dark:bg-slate-900 dark:text-slate-100 min-h-screen`}>
-        {/* 全局背景：随机图像，加载完成后再淡入 */}
         <BackgroundImage src="https://api.wenturc.com/" />
-        {/* 遮罩：顶部完全遮挡（白色 / 深色下为黑色），向下渐隐，保证上不可见、下可见 */}
         <div
           aria-hidden="true"
           className="pointer-events-none fixed inset-0 z-0 bg-gradient-to-b from-white via-white/40 to-white/0 dark:from-black dark:via-black/40 dark:to-black/0"

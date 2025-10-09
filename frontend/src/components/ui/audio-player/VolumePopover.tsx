@@ -18,7 +18,6 @@ export function VolumePopover({ open, onOpenChange, ready, volume, onVolumeChang
   const [volMaxHeight, setVolMaxHeight] = useState<number | null>(null)
   const [volSliderLength, setVolSliderLength] = useState<number>(96)
 
-  // outside click
   useEffect(() => {
     if (!open) return
     const onDocDown = (e: MouseEvent | TouchEvent) => {
@@ -35,7 +34,6 @@ export function VolumePopover({ open, onOpenChange, ready, volume, onVolumeChang
     }
   }, [open, onOpenChange])
 
-  // lock body scroll while volume popover is open
   useEffect(() => {
     if (!open) return
     const prev = document.body.style.overflow
@@ -43,7 +41,6 @@ export function VolumePopover({ open, onOpenChange, ready, volume, onVolumeChang
     return () => { document.body.style.overflow = prev }
   }, [open, anchorRef])
 
-  // compute max height inside nearest media boundary
   useEffect(() => {
     if (!open) return
     const btn = (anchorRef?.current as HTMLElement | null) ?? volWrapRef.current
@@ -57,7 +54,7 @@ export function VolumePopover({ open, onOpenChange, ready, volume, onVolumeChang
       topLimit = Math.max(viewportTop, b.top)
     }
     const rootFont = parseFloat(getComputedStyle(document.documentElement).fontSize || '16') || 16
-    const bottomOffset = 2.5 * rootFont // Tailwind bottom-10
+    const bottomOffset = 2.5 * rootFont 
     const safetyGap = 8
     const available = Math.max(0, (btnRect.bottom - topLimit) - bottomOffset - safetyGap)
     const MAX_PANEL = 140
@@ -69,7 +66,6 @@ export function VolumePopover({ open, onOpenChange, ready, volume, onVolumeChang
 
   return (
     <div className={cn(referenceClassName)} ref={volWrapRef}>
-      {/* reference area uses children in parent */}
       {open && (
         <div ref={volPanelRef} className={cn('absolute right-0 bottom-10 z-10 rounded-md border border-slate-300/70 dark:border-slate-700/60 bg-white/90 dark:bg-slate-900/80 backdrop-blur-sm w-8 px-1 py-2 overscroll-contain overflow-hidden select-none shadow-sm', panelClassName)} style={volMaxHeight ? { maxHeight: volMaxHeight } : undefined}>
           <div className="w-full flex items-center justify-center" style={{ height: volMaxHeight ? Math.max(40, Math.min(132, volMaxHeight - 8)) : 112 }}>
