@@ -218,7 +218,11 @@ export default function VideoPage() {
                   <div className="p-4">
                     {selected.hlsUrl ? (
                       <div className={`relative w-full aspect-video overflow-hidden rounded-sm bg-black transition-all duration-500 ease-out ${videoReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}`}>
-                        <HlsVideo src={selected.hlsUrl} className="absolute inset-0 w-full h-full block" onCanPlay={() => setVideoReady(true)} />
+                        <HlsVideo
+                          src={selected.hlsUrl}
+                          className="absolute inset-0 w-full h-full block !m-0 object-contain object-center"
+                          onCanPlay={() => setVideoReady(true)}
+                        />
                       </div>
                     ) : (
                       <div className="w-full aspect-video grid place-items-center bg-slate-900 text-slate-200 text-sm rounded-sm">无 HLS，可点击上方按钮生成</div>
