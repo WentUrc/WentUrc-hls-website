@@ -1,11 +1,11 @@
 # WentUrc HLS 列表
 
-一个包含前端（Next.js）与后端（Quart）的媒体管理与 HLS 播放站点。支持：
+一个包含前端（Next.js）与后端（Quart）的媒体管理与 HLS 播放站点。
 - 上传目录扫描与 HLS 列表生成（视频/音频）
 - HLS 播放预览
 - 移动端/平板/桌面自适应界面
 
-## 窝的目录结构
+## 目录结构
 
 ```
 assets/                  # 前端静态导出产物（构建后收集至此，用于静态部署）
@@ -21,7 +21,7 @@ scripts/
   └─ collect_frontend_export.js  # 构建后把前端导出结果收集到仓库根的 assets/
 ```
 
-## 窝的前端（frontend）
+## WebUI
 - 技术栈：Next.js 15（App Router + Turbopack）、Tailwind CSS、lucide-react、sonner、hls.js。
 - 主要页面：
   - `/`：入口导航
@@ -40,12 +40,12 @@ npm run build
 
 > [!WARNING]
 >
-> Next 警告“rewrites 在 export 下不生效”。
+> Next 会警告“rewrites 在 export 下不生效”。
 >
 > 本项目通过后端（或前置代理）处理 API 与静态资源路径。静态部署时请在服务器（如 Nginx）上配置对应反向代理。
 
-## 窝的后端（backend）
-- 技术栈：Quart（async Flask 风格）、uvicorn/hypercorn、aiohttp。
+## Backend
+- 技术栈：Quart、uvicorn/hypercorn、aiohttp
 - 功能：
   - 提供 API：
     - `GET /api/health`
@@ -55,7 +55,7 @@ npm run build
 
 > [!NOTE]
 >
-> 说白了，其实就是脚本的升级版，只不过加了前端更方便了
+> 说白了，就是脚本的升级版，加个前端是方便预览多媒体资源的
 
 ## 展示
 
@@ -66,19 +66,4 @@ npm run build
 > 安全考虑，没有在前端加入上传入口，也没有在后端加入上传 `API` 端点
 >
 > 所以用其他的方式上传吧
->
-> 唔，这么说来，那窝写这个前端的作用是什么呢？
->
-> 主要就是方便查看资源啦！
->
-> 这个 “开始工作” 按钮的作用是？
->
-> 这个按钮是用来扫描 `*-upload` 目录里面的资源的，额，但是好像多此一举了？
->
-> 但是至少比在终端里运行脚本方便了一点点吧？
->
-> 感觉还是不对，那为啥不加个登录，然后跳转到管理面板，这样就可以放心上传了
->
-> 呃，确实。。。 (\*/ω＼\*) 一开始没想到
->
-> **算了不管了** (ノへ￣、)
+
